@@ -1,0 +1,51 @@
+# Copy to .github/workflows/collect-stats.yml in the repo that holds your repos.toml.
+# Snapshots once a day and commits them; rebuilds the public aggregate (stats.json) from them.
+#
+# Secrets:
+#   STATS_TOKEN        fine-grained token for your org's repos: "Metadata: read" and "Administration: read"
+#                      (GitHub's traffic API needs the latter). Without traffic access, repo views and clones
+#                      are recorded as errors and everything else still works.
+#   GOATCOUNTER_TOKEN  optional: a GoatCounter API key with "Read statistics", for repos with `goatcounter`.
+#
+# Runs on a schedule and by hand only, never on pull requests: the token can read traffic for every repo.
+name: Collect stats
+
+on:
+  schedule:
+    # Off the top of the hour: GitHub queues scheduled runs, and :00 is the busiest slot.
+    - cron: "23 4 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - name: Snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.STATS_TOKEN }}
+          GOATCOUNTER_TOKEN: ${{ secrets.GOATCOUNTER_TOKEN }}
+        # Pin the version and update it deliberately (Dependabot doesn't see npx).
+        run: npx --yes @rhizomatics/hq-stats@0.1.0 collect
+      - name: Aggregate
+        run: npx --yes @rhizomatics/hq-stats@0.1.0 build
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet && exit 0
+          git commit -m "stats: $(date -u +%F)"
+          for attempt in 1 2 3; do
+            git push && exit 0
+            sleep $((attempt * 5))
+            git pull --rebase
+          done
+          exit 1

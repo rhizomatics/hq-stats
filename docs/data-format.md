@@ -1,0 +1,97 @@
+# Data formats
+
+hq-stats writes two kinds of file. Both are public by design and versioned with the package: a breaking change
+to either is a major version of `@rhizomatics/hq-stats`. Adding fields is not breaking; ignore what you don't know.
+
+Dates are `YYYY-MM-DD` in UTC. A **daily series** is an object from date to that day's figure.
+
+## Daily snapshot: `<data_dir>/YYYY-MM-DD.json`
+
+Written by `hq-stats collect`, one per day, keys sorted. Holds raw counters as the sources report them; the
+aggregate turns them into series.
+
+```jsonc
+{
+  "collected_at": "2026-11-19T04:23:00+00:00",
+  "repos": {
+    "<repo>": {
+      "github": {
+        "description": "…",
+        "archived": false, // from 0.1.0
+        "stars": 25,
+        "forks": 3,
+        "watchers": 4,
+        "open_issues_and_prs": 7,
+        "views": [{ "timestamp": "2026-11-05T00:00:00Z", "count": 12, "uniques": 4 }], // last 14 days
+        "clones": [{ "timestamp": "2026-11-05T00:00:00Z", "count": 30, "uniques": 9 }], // last 14 days
+        "release_assets": { "<tag>": { "<asset name>": 123 } }, // lifetime download counts, latest 100 releases
+      },
+      "npm": { "last_week": 120, "last_month": 480 },
+      "pypi": { "last_day": 10, "last_week": 70, "last_month": 300 },
+      "ghcr": { "total": 88551 }, // lifetime pulls
+      "ha_installs": 96, // Home Assistant installs reporting the integration
+      "goatcounter": {
+        "site": "<code>",
+        "daily": { "2026-11-18": 7 }, // the 14 complete days before the snapshot
+        "top_pages_30d": [{ "path": "/", "title": "…", "count": 9 }],
+      },
+    },
+  },
+}
+```
+
+- Only public repos appear. A channel appears only if the repo has its field in `repos.toml`.
+- A source that failed is `{ "error": "<message>" }` in place of its object (also `views` and `clones` on their
+  own, e.g. without traffic access).
+- GitHub traffic and GoatCounter windows overlap from one snapshot to the next; the latest snapshot to mention a
+  day wins, and a snapshot's own day is ignored as partial.
+
+## Aggregate: `stats.json`
+
+Written by `hq-stats build`. What the pages show, and the interface for your own pages. TypeScript types are in
+[src/astro/types.ts](../src/astro/types.ts).
+
+```jsonc
+{
+  "format": 1,
+  "generatedAt": "2026-11-19T06:00:00.000Z",
+  "org": { "name": "My Org", "github": "my-org" },
+  "snapshotDate": "2026-11-19", // the latest snapshot
+  "firstSnapshot": "2026-09-12", // the earliest date with data (legacy history included)
+  "pageViewsSince": "2026-11-17", // the first snapshot with GoatCounter data, or null
+  "notes": ["…"], // sources missing at build, one sentence each
+  "components": [/* every public, unarchived repo except `meta` and `internal` ones */],
+  "websites": [/* every repo with a `goatcounter` site, `meta` included */],
+}
+```
+
+### Component
+
+| Field                                           | Meaning                                                                                                                                                                                                       |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`, `family`, `description`, `url`            | the repo, its family from `repos.toml`, its GitHub description and URL                                                                                                                                        |
+| `major`                                         | `category` includes `major`                                                                                                                                                                                   |
+| `channels`                                      | download channels with data: `hacs`, `npm`, `pypi`, `ghcr`                                                                                                                                                    |
+| `downloads`                                     | daily series per channel. HACS and GHCR are lifetime counters turned into daily figures (a gap between snapshots is spread evenly; a drop counts as zero). npm and PyPI are the registries' own daily figures |
+| `kpis.downloads7`, `kpis.downloads30`           | all channels, the 7 and 30 days to `snapshotDate`                                                                                                                                                             |
+| `kpis.totals`                                   | lifetime per channel where known (`npm`: the last 18 months)                                                                                                                                                  |
+| `kpis.stars`, `kpis.starsChange7`               | stars now, and the change over 7 days                                                                                                                                                                         |
+| `kpis.haInstalls`                               | Home Assistant installs reporting today                                                                                                                                                                       |
+| `kpis.views7`, `kpis.views30`                   | website page views, or null without a website                                                                                                                                                                 |
+| `kpis.clones14`, `kpis.repoViews14`             | GitHub clones and repo page views, last 14 days                                                                                                                                                               |
+| `stars`, `haInstalls`                           | daily series                                                                                                                                                                                                  |
+| `clones`, `repoViews`                           | per day: `{ "count": n, "uniques": n }`; uniques are per day                                                                                                                                                  |
+| `pageViews`, `topPages`, `website`, `analytics` | the repo's website, if it has one (as in Website below)                                                                                                                                                       |
+| `haVersions`                                    | Home Assistant installs by version, or null                                                                                                                                                                   |
+| `hacsVersions`                                  | `[{ version, downloads, last7 }]`: release zip downloads by tag, lifetime and last 7 days                                                                                                                     |
+
+### Website
+
+| Field                         | Meaning                                                          |
+| ----------------------------- | ---------------------------------------------------------------- |
+| `id`, `family`, `description` | the repo the site belongs to                                     |
+| `product`                     | a product's site (not `meta`, not `experimental`)                |
+| `analytics`                   | the GoatCounter dashboard                                        |
+| `daily`                       | page views per day, from the first day any site counted a view   |
+| `views7`, `views30`           | page views over 7 and 30 days, or null before any were collected |
+| `topPages`                    | `[{ path, title, count }]`, last 30 days                         |

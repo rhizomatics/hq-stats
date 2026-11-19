@@ -1,0 +1,16 @@
+{
+  "name": "usage-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "stats": "hq-stats build --config ../repos.toml",
+    "build": "npm run stats && astro build",
+    "dev": "astro dev"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.42.9",
+    "@rhizomatics/hq-stats": "^0.1.0",
+    "astro": "^7.4.7",
+    "chart.js": "^4.6.1"
+  }
+}
