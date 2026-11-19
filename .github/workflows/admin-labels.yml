@@ -1,0 +1,20 @@
+# Managed by rhizomatics/hq (admin/sync-admin.sh) - edit there, not here.
+name: Sync labels
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/admin-labels.yml]
+
+# Nothing by default; each job grants only what it needs (OpenSSF Scorecard Token-Permissions).
+permissions: {}
+
+jobs:
+  labels:
+    permissions:
+      issues: write
+      contents: read
+    uses: rhizomatics/hq/.github/workflows/reusable-labels.yml@0b71f7ee4e19ea72a529b96395fa81eeb641a590 # v1.0.1
