@@ -7,6 +7,7 @@ title: What's New
 ## Other Changes
 
 - Released as `npm` public module
+- Added `prek` for pre-commit checks and `mise` for project tooling
 
 # 0.1.0
 
