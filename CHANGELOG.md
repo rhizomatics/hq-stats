@@ -2,6 +2,10 @@
 title: What's New
 ---
 
+# 0.1.1
+## Other Changes
+- Released as `npm` public module
+
 # 0.1.0
 
 ## ✨ Enhancements
