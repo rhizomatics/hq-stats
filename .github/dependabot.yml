@@ -1,0 +1,19 @@
+# Dependency updates. Shape shared across rhizomatics repos: see templates/README.md in rhizomatics/.github.
+# Version updates run on the 1st and 15th; security updates are raised as soon as an alert opens.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    versioning-strategy: increase-if-necessary
+    schedule:
+      interval: cron
+      cronjob: "0 6 1,15 * *"
+    cooldown:
+      default-days: 7
+    groups:
+      npm:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
