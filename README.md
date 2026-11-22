@@ -1,5 +1,8 @@
 <img src="docs/brand/logo.svg" alt="hq stats" width="96" align="right">
 
+
+[![Rhizomatics Open Source](https://img.shields.io/badge/rhizomatics%20open%20source-lightseagreen)](https://github.com/rhizomatics) [![managed by hq](https://raw.githubusercontent.com/rhizomatics/hq/main/assets/badge-managed-by-hq.svg)](https://hq.rhizomatics.org.uk/) 
+
 # hq-stats
 
 Usage stats for open source projects, from every channel they publish to, with public pages or raw JSON.
