@@ -122,6 +122,12 @@
   color: var(--sl-color-gray-3);
 }
 
+.hq-stats-credit {
+  margin-top: 2rem;
+  font-size: var(--sl-text-xs);
+  color: var(--sl-color-gray-3);
+}
+
 .hq-stats-meta {
   font-size: var(--sl-text-sm);
   color: var(--sl-color-gray-3);

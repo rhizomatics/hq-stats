@@ -3,6 +3,7 @@ import '../styles.css';
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import Chart from '../components/Chart.astro';
 import Kpi from '../components/Kpi.astro';
+import Credit from '../components/Credit.astro';
 import { CHANNELS, FAMILIES, ORG, combinedDownloads, data, downloadsSpecs, familyLabel, fmt, usageHref } from '../usage';
 
 const components = data.components;
@@ -78,4 +79,6 @@ const firstDate = (id: string) =>
     <li><strong>GitHub repo views</strong>: views of each repo's pages on github.com, on each component's page; from the same traffic API.</li>
     {data.notes.filter((n) => !n.startsWith('Community')).map((n) => <li>{n}</li>)}
   </ul>
+
+  <Credit />
 </StarlightPage>
