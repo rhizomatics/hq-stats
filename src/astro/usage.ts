@@ -10,7 +10,7 @@ export const ORG = config.org;
 export const usageHref = (path = "/") => `${import.meta.env.BASE_URL.replace(/\/$/, "")}${config.base}/${path.replace(/^\//, "")}`;
 
 export type Daily = Record<string, number>;
-export type { Component, Website } from "./types";
+export type { CommunityProject, Component, Website } from "./types";
 export type Channel = "hacs" | "npm" | "pypi" | "ghcr";
 
 // Channel order is the categorical slot order (validated as adjacent pairs for stacked bars).
@@ -158,10 +158,11 @@ export function viewsViews(specs: { weekly: ChartSpec | null; daily: ChartSpec }
   return specs.weekly ? { Weekly: specs.weekly, Daily: specs.daily } : { Daily: specs.daily };
 }
 
-// The org-wide view: every component's channels added together, per channel.
-export function combinedDownloads() {
+// The org-wide view: every component's channels added together, per channel. Pass `stats.community` for the
+// community projects' own view; the two are never added together.
+export function combinedDownloads(list: { downloads: Partial<Record<Channel, Daily>> }[] = stats.components) {
   const combined: Partial<Record<Channel, Daily>> = {};
-  for (const c of stats.components) {
+  for (const c of list) {
     for (const [channel, daily] of Object.entries(c.downloads) as [Channel, Daily][]) {
       const target = (combined[channel] ??= {});
       for (const [d, v] of Object.entries(daily)) target[d] = (target[d] ?? 0) + v;

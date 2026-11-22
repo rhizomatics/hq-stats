@@ -1,3 +1,5 @@
+<img src="docs/brand/logo.svg" alt="hq stats" width="96" align="right">
+
 # hq-stats
 
 Usage stats for open source projects, from every channel they publish to, with public pages or raw JSON.
@@ -7,9 +9,11 @@ No AI, no cookies, no accounts beyond the tokens you already have.
 - **Installs**: Home Assistant's public analytics for custom integrations
 - **GitHub**: stars, repo page views and clones (GitHub keeps 14 days; hq-stats snapshots them daily so they're kept)
 - **Websites**: page views from [GoatCounter](https://www.goatcounter.com/), which needs no cookie banner
+- **Community**: projects other people build on yours (plugins, cards, add-ons), from their public figures only,
+  shown on their own page and never added to your totals
 
 It's the stats part of [Rhizomatics HQ](https://hq.rhizomatics.org.uk/usage/), where you can see the pages it
-makes. You don't need the rest of HQ to use it.
+makes. You don't need the rest of HQ to use it, or an organisation: a personal GitHub account works the same way.
 
 ## How it works
 
@@ -17,7 +21,8 @@ makes. You don't need the rest of HQ to use it.
 2. A scheduled GitHub Actions workflow runs `hq-stats collect` once a day and commits a snapshot
    (`data/stats/YYYY-MM-DD.json`) to your repo.
 3. `hq-stats build` turns the snapshots into one public aggregate, `stats.json`.
-4. Show it with the built-in pages (an Astro/Starlight integration), or use `stats.json` in your own pages.
+4. Show it with the built-in pages (an Astro/Starlight integration, publishable on GitHub Pages), or use
+   `stats.json` in your own pages.
 
 Everything is assumed public: private repos are skipped, and nothing beyond counts is stored (no referrers, no
 visitor details). If you want your figures private, keep the repo holding them private.
@@ -28,7 +33,7 @@ visitor details). If you want your figures private, keep the repo holding them p
 
 ```toml
 [org]
-github = "my-org" # GitHub org or user that owns the repos
+github = "my-org" # GitHub org, or your own user name, that owns the repos
 name = "My Org" # display name
 
 [stats] # optional; paths relative to this file
@@ -51,21 +56,37 @@ goatcounter = "my-library-docs" # GoatCounter site code for the project's websit
 [repos.www]
 family = "meta"
 goatcounter = "my-org"
+
+[community.my-library-card] # optional: someone else's project built on one of yours
+repo = "someone/my-library-card" # owner/name on GitHub
+author = "someone" # GitHub login (default: the repo's owner)
+extends = "my-library" # which of your repos it builds on
+hacs_zip = "my-library-card.js" # the same channel fields as a repo: npm, pypi, ghcr, hacs_zip, ha_domain
 ```
 
 Other optional fields per repo: `archived = true` (left off the pages), `category = ["experimental"]` (not
 counted as a product site) or `["internal"]` (left out), `description` (used until the first snapshot has one).
 
+Community projects are collected from public sources only (stars, releases, downloads; no traffic, which only
+their authors can see), stored under `community` in the snapshots and the aggregate, and shown on a Community page.
+Entries with `kind = "blog"`, or without a `repo`, are ignored, so the table can list other things too.
+
 ### Tokens
 
 - `GITHUB_TOKEN`: a fine-grained token for your repos with **Metadata: read** and **Administration: read**
-  (GitHub's traffic API needs the latter). Locally, a logged-in `gh` CLI works too.
+  (GitHub's traffic API needs the latter). Create it under the organisation as resource owner, or your own account
+  for personal repos. Locally, a logged-in `gh` CLI works too.
 - `GOATCOUNTER_TOKEN` (optional): a GoatCounter API key with **Read statistics**.
 
 ### Daily workflow
 
 Copy [examples/collect-stats.yml](examples/collect-stats.yml) to `.github/workflows/` in the repo with your
-`repos.toml`, and add the secrets it names. It runs on a schedule and by hand, never on pull requests.
+`repos.toml`, and add the secrets it names (as `STATS_TOKEN` and `GOATCOUNTER_TOKEN`). It runs on a schedule and
+by hand, never on pull requests. Run it once by hand to check: it commits `data/stats/<today>.json` and
+`data/stats.json`.
+
+GitHub only keeps 14 days of traffic, so history starts with your first snapshot; download counters that only
+give a lifetime total (HACS, GHCR) show daily figures from the second.
 
 ### Pages
 
@@ -84,11 +105,19 @@ export default defineConfig({
 });
 ```
 
-Run `hq-stats build` before `astro build`. The pages are mounted at `/usage/` (Downloads), `/usage/page-views/`
-and `/usage/<repo>/`. They need `chart.js` installed alongside. For a site with nothing else, start from
-[examples/standalone](examples/standalone).
+Run `hq-stats build` before `astro build`. The pages are mounted at `/usage/` (Downloads), `/usage/page-views/`,
+`/usage/<repo>/` and, when `repos.toml` lists community projects, `/usage/community/`. They need `chart.js`
+installed alongside.
 
-Chart colours are CSS variables (`--viz-1` … `--viz-4`, `--viz-text`, …) you can override in your own CSS.
+For a site with nothing else, copy [examples/standalone](examples/standalone) to `site/` next to your
+`repos.toml`, set `site` (and `base`, for a project site such as `https://<owner>.github.io/<repo>/`) in its
+`astro.config.mjs`, and run `npm install` there. To publish it on GitHub Pages, copy
+[examples/publish-stats.yml](examples/publish-stats.yml) to `.github/workflows/` and set Pages' source to
+"GitHub Actions" in the repo's settings.
+
+The standalone example uses the hq-stats logo and colours (`@rhizomatics/hq-stats/brand/logo.svg`,
+`@rhizomatics/hq-stats/theme.css`); swap in your own logo and drop `theme.css` to use your colours. Chart colours
+are CSS variables (`--viz-1` … `--viz-4`, `--viz-text`, …) you can override in your own CSS.
 
 ### Raw data
 

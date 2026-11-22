@@ -49,6 +49,31 @@ export interface Website {
   topPages: { path: string; title: string; count: number }[];
 }
 
+// A project someone else built on one of the org's products, from `[community.<id>]`. Never in the org's totals.
+export interface CommunityProject {
+  id: string;
+  name: string;
+  url: string;
+  author: string;
+  authorUrl: string;
+  extends: string | null;
+  description: string;
+  license: string | null;
+  archived: boolean;
+  latestRelease: { tag: string; date: string; url: string } | null;
+  channels: ChannelId[];
+  kpis: {
+    downloads7: number | null; // null until there are daily figures
+    downloads30: number | null;
+    totals: Partial<Record<ChannelId, number | null>>;
+    stars: number | null;
+    starsChange7: number | null;
+    haInstalls: number | null;
+  };
+  downloads: Partial<Record<ChannelId, Daily>>;
+  stars: Daily;
+}
+
 export interface Stats {
   format: number;
   generatedAt: string;
@@ -59,4 +84,5 @@ export interface Stats {
   notes: string[];
   components: Component[];
   websites: Website[];
+  community?: CommunityProject[]; // from 0.2.0
 }

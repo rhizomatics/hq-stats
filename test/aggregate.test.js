@@ -78,6 +78,16 @@ archived = true
 
 [repos.secret]
 family = "tool"
+
+[community.widget-card]
+repo = "someone/widget-card"
+author = "someone"
+extends = "widget"
+hacs_zip = "card.js"
+
+[community.blog]
+kind = "blog"
+url = "https://blog.example.org"
 `,
   );
   const snap = (date, zip, pulls, views) => ({
@@ -97,6 +107,19 @@ family = "tool"
       },
       www: { github: { stars: 0, views: [], clones: [], release_assets: {} }, goatcounter: { site: "www", daily: {}, top_pages_30d: [] } },
       gone: { github: { stars: 0, views: [], clones: [], release_assets: {} } },
+    },
+    community: {
+      "widget-card": {
+        github: {
+          description: "A card",
+          archived: false,
+          license: "MIT",
+          stars: zip,
+          forks: 0,
+          latest_release: { tag: "v2", date: `${date}T00:00:00Z`, url: "https://github.com/someone/widget-card/releases/v2" },
+          release_assets: { v2: { "card.js": zip * 10 } },
+        },
+      },
     },
   });
   await mkdir(path.join(dir, "data", "stats"), { recursive: true });
@@ -142,5 +165,26 @@ test("build: public, unarchived repos only; downloads, page views and totals fro
     { label: "Downloads", link: "/usage/" },
     { label: "Page views", link: "/usage/page-views/" },
     { label: "Tools", collapsed: true, items: [{ label: "widget", link: "/usage/widget/" }] },
+    { label: "Community", link: "/usage/community/" },
   ]);
+});
+
+test("build: community projects kept apart from the org's components and totals", async () => {
+  const dir = await fixture();
+  const cfg = loadConfig({ config: path.join(dir, "repos.toml") });
+  const quiet = () => {};
+  const stats = await aggregate(cfg, { live: false, log: quiet, warn: quiet });
+  assert.deepEqual(
+    stats.community.map((p) => [p.id, p.name, p.author, p.extends]),
+    [["widget-card", "widget-card", "someone", "widget"]],
+  );
+  const [card] = stats.community;
+  assert.deepEqual(card.downloads.hacs, { "2026-01-02": 20, "2026-01-03": 20 });
+  assert.deepEqual(card.kpis.totals, { hacs: 140 });
+  assert.equal(card.kpis.stars, 14);
+  assert.equal(card.license, "MIT");
+  assert.equal(card.latestRelease.tag, "v2");
+  // Nothing of the community project reaches the org's own figures.
+  assert.ok(!stats.components.some((c) => c.id === "widget-card"));
+  assert.equal(stats.components[0].kpis.downloads7, 10);
 });

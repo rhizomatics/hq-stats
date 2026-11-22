@@ -1,0 +1,84 @@
+---
+import '../styles.css';
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import Chart from '../components/Chart.astro';
+import Kpi from '../components/Kpi.astro';
+import { CHANNELS, ORG, combinedDownloads, data, downloadsSpecs, fmt, usageHref, viewsViews, type CommunityProject } from '../usage';
+
+// Projects other people have built on the org's products (`[community.<id>]` in repos.toml). Their figures are
+// shown here only, never added to the org's own totals.
+const projects = (data.community ?? []) as CommunityProject[];
+const components = new Set(data.components.map((c) => c.id));
+const byProduct = [...new Set(projects.map((p) => p.extends ?? ''))].map((id) => [id, projects.filter((p) => (p.extends ?? '') === id)] as const);
+const used = CHANNELS.filter((ch) => projects.some((p) => p.channels.includes(ch.id)));
+const downloads = downloadsSpecs(combinedDownloads(projects));
+const sum = (f: (p: CommunityProject) => number | null) => projects.reduce((n, p) => n + (f(p) ?? 0), 0);
+const counted = projects.some((p) => p.kpis.downloads30 != null);
+const lifetime = (p: CommunityProject) => {
+  const known = Object.values(p.kpis.totals).filter((v): v is number => Number.isFinite(v));
+  return known.length ? known.reduce((a, b) => a + b, 0) : null;
+};
+const day = (t: string) => t.slice(0, 10);
+---
+<StarlightPage frontmatter={{ title: 'Community', description: `Usage of projects other people have built on ${ORG.name} products.`, tableOfContents: false }}>
+  <p>
+    Projects other people have built on {ORG.name} products, grouped by the product they extend. They're made and
+    maintained by their authors. Their figures come from public sources only and are never added to the totals on
+    the <a href={usageHref()}>Downloads</a> page. Updated daily; numbers to {data.snapshotDate}.
+  </p>
+
+  {projects.length ? (
+    <>
+      <div class="kpis">
+        <Kpi label="Community projects" value={fmt(projects.length)} />
+        {used.length > 0 && <Kpi label="Downloads, last 30 days" value={counted ? fmt(sum((p) => p.kpis.downloads30)) : '–'} note={used.map((c) => c.label).join(', ')} />}
+        <Kpi label="GitHub stars" value={fmt(sum((p) => p.kpis.stars))} />
+      </div>
+
+      {downloads && <Chart title="Downloads, all community projects" views={viewsViews(downloads)} caption="Stacked by channel. Counting starts with each project's first snapshot." />}
+
+      {byProduct.map(([product, list]) => (
+        <>
+          <h2>{product ? <>For {components.has(product) ? <a href={usageHref(`${product}/`)}>{product}</a> : product}</> : 'Other'}</h2>
+          <table class="usage-table">
+            <thead>
+              <tr>
+                <th scope="col">Project</th>
+                <th scope="col">By</th>
+                <th scope="col">What it does</th>
+                <th scope="col">Latest release</th>
+                <th scope="col" class="num">Stars</th>
+                <th scope="col" class="num">Downloads 30d</th>
+                <th scope="col" class="num">All time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((p) => (
+                <tr>
+                  <th scope="row"><a href={p.url}>{p.name}</a>{p.archived && <span class="hq-stats-meta"> (archived)</span>}</th>
+                  <td><a href={p.authorUrl}>{p.author}</a></td>
+                  <td>{p.description}</td>
+                  <td>{p.latestRelease ? <><a href={p.latestRelease.url}>{p.latestRelease.tag}</a> <span class="hq-stats-meta">{day(p.latestRelease.date)}</span></> : <span class="hq-stats-meta">–</span>}</td>
+                  <td class="num">{fmt(p.kpis.stars)}</td>
+                  <td class="num">{fmt(p.kpis.downloads30)}</td>
+                  <td class="num">{fmt(lifetime(p))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      ))}
+    </>
+  ) : (
+    <p>No community projects collected yet: they appear after the first daily snapshot that lists them.</p>
+  )}
+
+  <h2>Sources</h2>
+  <ul class="usage-notes">
+    <li>Each project's public GitHub data and the public download counters of the channels it publishes to; no traffic or page views, which only the project's own author can see.</li>
+    {used.map((c) => <li><strong>{c.label}</strong>: {c.note}.</li>)}
+    <li><strong>All time</strong>: lifetime downloads where the channel gives one (npm: the last 18 months; PyPI gives none).</li>
+    <li>Release downloads are lifetime counters, so daily figures start from a project's second snapshot.</li>
+    {data.notes.filter((n) => n.startsWith('Community')).map((n) => <li>{n}</li>)}
+  </ul>
+</StarlightPage>

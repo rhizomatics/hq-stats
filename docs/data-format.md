@@ -40,7 +40,11 @@ aggregate turns them into series.
 }
 ```
 
-- Only public repos appear. A channel appears only if the repo has its field in `repos.toml`.
+- `community` (from 0.2.0, only when `repos.toml` lists community projects): one entry per `[community.<id>]`
+  project, keyed by its id, holding `github` (`description`, `archived`, `license`, `stars`, `forks`,
+  `latest_release` as `{ tag, date, url }` or null, `release_assets`) and the same channel objects as a repo
+  (`npm`, `pypi`, `ghcr`, `ha_installs`). No traffic or page views.
+- Only public repos appear, ours or community. A channel appears only if the repo has its field in `repos.toml`.
 - A source that failed is `{ "error": "<message>" }` in place of its object (also `views` and `clones` on their
   own, e.g. without traffic access).
 - GitHub traffic and GoatCounter windows overlap from one snapshot to the next; the latest snapshot to mention a
@@ -62,6 +66,7 @@ Written by `hq-stats build`. What the pages show, and the interface for your own
   "notes": ["…"], // sources missing at build, one sentence each
   "components": [/* every public, unarchived repo except `meta` and `internal` ones */],
   "websites": [/* every repo with a `goatcounter` site, `meta` included */],
+  "community": [/* from 0.2.0: community projects, never counted in the components or any total */],
 }
 ```
 
@@ -95,3 +100,20 @@ Written by `hq-stats build`. What the pages show, and the interface for your own
 | `daily`                       | page views per day, from the first day any site counted a view   |
 | `views7`, `views30`           | page views over 7 and 30 days, or null before any were collected |
 | `topPages`                    | `[{ path, title, count }]`, last 30 days                         |
+
+### Community project
+
+From 0.2.0. Projects other people have built on the org's products (`[community.<id>]` in `repos.toml`), from public
+sources only. Kept apart from `components`: nothing here is added to any of the org's figures.
+
+| Field                                                 | Meaning                                                                                   |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `id`, `name`, `url`                                   | the `[community.<id>]` key, the repo's name and its GitHub URL                            |
+| `author`, `authorUrl`                                 | the author's GitHub login (from `author`, else the repo's owner) and profile URL          |
+| `extends`                                             | the org's repo it builds on, or null                                                      |
+| `description`, `license`, `archived`, `latestRelease` | from GitHub; `latestRelease` is `{ tag, date, url }` for the latest full release, or null |
+| `channels`, `downloads`                               | as for a component                                                                        |
+| `kpis.downloads7`, `kpis.downloads30`                 | all channels; null until there's a daily figure (lifetime counters need two snapshots)    |
+| `kpis.totals`, `kpis.stars`, `kpis.starsChange7`      | as for a component                                                                        |
+| `kpis.haInstalls`                                     | Home Assistant installs reporting today, if the project has an `ha_domain`                |
+| `stars`                                               | daily series                                                                              |

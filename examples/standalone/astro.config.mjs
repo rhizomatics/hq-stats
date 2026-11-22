@@ -12,6 +12,9 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Usage",
+      // The hq-stats look; swap in your own logo and drop theme.css to use your colours.
+      logo: { src: "@rhizomatics/hq-stats/brand/logo.svg" },
+      customCss: ["@rhizomatics/hq-stats/theme.css"],
       sidebar: [{ label: "Usage", items: usageSidebar(options) }],
     }),
     hqStats(options),
