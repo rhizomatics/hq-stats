@@ -23,8 +23,8 @@ const day = (t: string) => t.slice(0, 10);
 <StarlightPage frontmatter={{ title: 'Community', description: `Usage of projects other people have built on ${ORG.name} products.`, tableOfContents: false }}>
   <p>
     Projects other people have built on {ORG.name} products, grouped by the product they extend. They're made and
-    maintained by their authors. Their figures come from public sources only and are never added to {ORG.name}'s own
-    <a href={usageHref()}>downloads</a>. Updated daily; numbers to {data.snapshotDate}.
+    maintained by their authors. Their figures come from public sources only and are never added to the totals on
+    the <a href={usageHref()}>Downloads</a> page. Updated daily; numbers to {data.snapshotDate}.
   </p>
 
   {projects.length ? (
