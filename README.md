@@ -1,8 +1,8 @@
 <img src="docs/brand/logo.svg" alt="hq stats" width="96" align="right">
 
-
 [![Rhizomatics Open Source](https://img.shields.io/badge/rhizomatics%20open%20source-lightseagreen)](https://github.com/rhizomatics) [![managed by hq](https://raw.githubusercontent.com/rhizomatics/hq/main/assets/badge-managed-by-hq.svg)](https://hq.rhizomatics.org.uk/) [![npm version](https://img.shields.io/npm/v/@rhizomatics/hq-stats.svg)](https://www.npmjs.com/package/@rhizomatics/hq-stats)
 [![npm downloads](https://img.shields.io/npm/dm/@rhizomatics/hq-stats.svg)](https://www.npmjs.com/package/@rhizomatics/hq-stats)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/rhizomatics/hq-stats/blob/main/LICENSE)
 
 # hq-stats
 
