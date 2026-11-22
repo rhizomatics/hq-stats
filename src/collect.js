@@ -85,8 +85,11 @@ async function communityGithub(fullName, token) {
 export const communityProjects = (registry) =>
   Object.entries(registry.community ?? {}).filter(([, e]) => (e.kind ?? "project") === "project" && e.repo);
 
+// A package name as a path segment of the npm downloads API: `@scope/name` -> `@scope%2Fname`.
+export const npmPath = (pkg) => (pkg.startsWith("@") ? `@${encodeURIComponent(pkg.slice(1))}` : encodeURIComponent(pkg));
+
 async function npm(pkg) {
-  const q = encodeURIComponent(pkg).replace("%40", "@");
+  const q = npmPath(pkg);
   const week = await get(`https://api.npmjs.org/downloads/point/last-week/${q}`);
   const month = await get(`https://api.npmjs.org/downloads/point/last-month/${q}`);
   return { last_week: week.downloads ?? null, last_month: month.downloads ?? null };

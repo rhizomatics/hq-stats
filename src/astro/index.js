@@ -26,7 +26,7 @@ const page = (name) => `@rhizomatics/hq-stats/pages/${name}.astro`;
 export function resolveOptions(options = {}, root = process.cwd()) {
   const at = (p) => (p ? path.resolve(root, p) : undefined);
   const cfg = loadConfig({ config: at(options.config), out: at(options.stats) });
-  const base = `/${(options.base ?? "usage").replace(/^\/+|\/+$/g, "")}`;
+  const base = `/${(options.base ?? "usage").split("/").filter(Boolean).join("/")}`;
   return { cfg, base, statsPath: cfg.outPath };
 }
 

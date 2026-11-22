@@ -14,7 +14,7 @@
 import { readFile, readdir, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { get } from "./http.js";
-import { addDays, communityProjects } from "./collect.js";
+import { addDays, communityProjects, npmPath } from "./collect.js";
 
 export const FORMAT_VERSION = 1;
 const DAY = 86_400_000;
@@ -115,7 +115,7 @@ async function loadLegacy(file) {
 async function npmDaily(pkg) {
   const end = isoDate(Date.now() - DAY);
   const start = addDays(end, -540); // npm's range API allows up to 18 months
-  const data = await get(`https://api.npmjs.org/downloads/range/${start}:${end}/${encodeURIComponent(pkg).replace("%40", "@")}`);
+  const data = await get(`https://api.npmjs.org/downloads/range/${start}:${end}/${npmPath(pkg)}`);
   const daily = {};
   let seen = false;
   for (const { day, downloads } of data.downloads) {
