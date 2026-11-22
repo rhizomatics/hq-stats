@@ -40,9 +40,9 @@ jobs:
           GOATCOUNTER_TOKEN: ${{ secrets.GOATCOUNTER_TOKEN }}
         # Pin the version and update it deliberately (Dependabot doesn't see npx). If you also use the pages
         # (site/package.json), run `npx --no-install hq-stats` from site/ instead, so Dependabot updates one version.
-        run: npx --yes @rhizomatics/hq-stats@0.2.0 collect
+        run: npx --yes @rhizomatics/hq-stats@0.2.1 collect
       - name: Aggregate
-        run: npx --yes @rhizomatics/hq-stats@0.2.0 build
+        run: npx --yes @rhizomatics/hq-stats@0.2.1 build
       - name: Commit
         env:
           PUSH_TOKEN: ${{ github.token }}

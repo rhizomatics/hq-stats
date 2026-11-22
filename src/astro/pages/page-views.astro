@@ -4,6 +4,7 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import { Icon } from '@astrojs/starlight/components';
 import Chart from '../components/Chart.astro';
 import Kpi from '../components/Kpi.astro';
+import Credit from '../components/Credit.astro';
 import { FAMILIES, META_LABEL, ORG, REPO_VIEWS_NOTE, VIEWS_NOTE, data, fmt, pageViewSpecs, repoViewRows, usageHref, viewsViews } from '../usage';
 
 const sites = data.websites;
@@ -119,4 +120,6 @@ const groups = [
     </li>
     {data.notes.filter((n) => n.startsWith('Page views')).map((n) => <li>{n}</li>)}
   </ul>
+
+  <Credit />
 </StarlightPage>

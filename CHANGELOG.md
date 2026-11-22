@@ -2,6 +2,12 @@
 title: What's New
 ---
 
+# 0.2.1
+
+## Other Changes
+
+- The Downloads and Page views pages end with a line crediting hq-stats, linking to its GitHub repo.
+
 # 0.2.0
 
 ## ✨ Enhancements
