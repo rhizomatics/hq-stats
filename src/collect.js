@@ -16,6 +16,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { channelNames } from "./config.js";
 import { get, sleep } from "./http.js";
 
 export function githubToken() {
@@ -100,6 +101,19 @@ async function pypi(pkg) {
   return { last_day: data.last_day, last_week: data.last_week, last_month: data.last_month };
 }
 
+// A renamed package counts its former names too: the figures are summed across them.
+async function summed(fetch, names) {
+  const all = await Promise.all(names.map(fetch));
+  return Object.fromEntries(Object.keys(all[0]).map((k) => [k, all.some((r) => r[k] == null) ? null : all.reduce((s, r) => s + r[k], 0)]));
+}
+
+const haTotal = (haInstalls, entry) => {
+  const found = channelNames(entry, "ha_domain")
+    .map((d) => haInstalls[d]?.total)
+    .filter(Number.isFinite);
+  return found.length ? found.reduce((a, b) => a + b, 0) : null;
+};
+
 // No public API for GHCR pull counts: the package page carries the lifetime total in a title attribute.
 // Trends come from deltas between snapshots.
 async function ghcr(org, image) {
@@ -152,10 +166,10 @@ export async function collect(cfg, { today = new Date().toISOString().slice(0, 1
     const gh = await safe(() => github(org.github, name, token));
     if (gh === null) continue;
     const entry = { github: gh };
-    if (r.npm) entry.npm = await safe(() => npm(r.npm));
-    if (r.pypi) entry.pypi = await safe(() => pypi(r.pypi));
+    if (r.npm) entry.npm = await safe(() => summed(npm, channelNames(r, "npm")));
+    if (r.pypi) entry.pypi = await safe(() => summed(pypi, channelNames(r, "pypi")));
     if (r.ghcr) entry.ghcr = await safe(() => ghcr(org.github, r.ghcr));
-    if (r.ha_domain && !haInstalls.error) entry.ha_installs = haInstalls[r.ha_domain]?.total ?? null;
+    if (r.ha_domain && !haInstalls.error) entry.ha_installs = haTotal(haInstalls, r);
     if (r.goatcounter) {
       entry.goatcounter = gcToken ? await safe(() => goatcounter(r.goatcounter, gcToken, today)) : { error: "no GOATCOUNTER_TOKEN" };
     }
@@ -168,10 +182,10 @@ export async function collect(cfg, { today = new Date().toISOString().slice(0, 1
     const gh = await safe(() => communityGithub(e.repo, token));
     if (gh === null) continue;
     const entry = { github: gh };
-    if (e.npm) entry.npm = await safe(() => npm(e.npm));
-    if (e.pypi) entry.pypi = await safe(() => pypi(e.pypi));
+    if (e.npm) entry.npm = await safe(() => summed(npm, channelNames(e, "npm")));
+    if (e.pypi) entry.pypi = await safe(() => summed(pypi, channelNames(e, "pypi")));
     if (e.ghcr) entry.ghcr = await safe(() => ghcr(e.repo.split("/")[0], e.ghcr));
-    if (e.ha_domain && !haInstalls.error) entry.ha_installs = haInstalls[e.ha_domain]?.total ?? null;
+    if (e.ha_domain && !haInstalls.error) entry.ha_installs = haTotal(haInstalls, e);
     out.community[id] = entry;
   }
 

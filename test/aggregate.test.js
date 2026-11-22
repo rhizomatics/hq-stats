@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { aggregate, cumulativeToDaily, fromBaseline, sumRecent, traffic } from "../src/aggregate.js";
 import { sortKeys } from "../src/collect.js";
-import { families, loadConfig } from "../src/config.js";
+import { channelNames, families, loadConfig } from "../src/config.js";
 import { usageSidebar } from "../src/astro/sidebar.js";
 
 test("cumulativeToDaily spreads a gap evenly and treats a drop as zero", () => {
@@ -187,4 +187,51 @@ test("build: community projects kept apart from the org's components and totals"
   // Nothing of the community project reaches the org's own figures.
   assert.ok(!stats.components.some((c) => c.id === "widget-card"));
   assert.equal(stats.components[0].kpis.downloads7, 10);
+});
+
+test("channelNames: current name first, then former ones (string or list)", () => {
+  assert.deepEqual(channelNames({ npm: "b", formerly: { npm: "a" } }, "npm"), ["b", "a"]);
+  assert.deepEqual(channelNames({ hacs_zip: "c.zip", formerly: { hacs_zip: ["b.zip", "a.zip"] } }, "hacs_zip"), [
+    "c.zip",
+    "b.zip",
+    "a.zip",
+  ]);
+  assert.deepEqual(channelNames({ pypi: "x" }, "pypi"), ["x"]);
+  assert.deepEqual(channelNames({}, "pypi"), []);
+});
+
+test("build: formerly counts a renamed repo's old snapshots and its old release asset name", async () => {
+  const dir = await fixture();
+  const toml = path.join(dir, "repos.toml");
+  await writeFile(
+    toml,
+    (await readFile(toml, "utf8")).replace(
+      'hacs_zip = "widget.zip"',
+      'hacs_zip = "widget.zip"\nformerly = { name = "old-widget", hacs_zip = "old_widget.zip" }',
+    ),
+  );
+  for (const f of ["2026-01-01.json", "2026-01-03.json"]) {
+    const p = path.join(dir, "data", "stats", f);
+    const s = JSON.parse(await readFile(p, "utf8"));
+    s.repos.widget.github.release_assets["v0.9.0"] = { "old_widget.zip": 5 };
+    // The first snapshot was taken before the repo was renamed.
+    if (f === "2026-01-01.json") {
+      s.repos["old-widget"] = s.repos.widget;
+      delete s.repos.widget;
+    }
+    await writeFile(p, JSON.stringify(s));
+  }
+  const quiet = () => {};
+  const stats = await aggregate(loadConfig({ config: toml }), { live: false, log: quiet, warn: quiet });
+  const [w] = stats.components;
+  assert.equal(w.id, "widget");
+  assert.equal(w.kpis.totals.hacs, 19);
+  assert.deepEqual(w.downloads.hacs, { "2026-01-02": 2, "2026-01-03": 2 });
+  assert.deepEqual(
+    w.hacsVersions.map((v) => [v.version, v.downloads]),
+    [
+      ["v1.0.0", 14],
+      ["v0.9.0", 5],
+    ],
+  );
 });

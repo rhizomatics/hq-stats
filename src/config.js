@@ -4,7 +4,8 @@
 //   [org]    github = "<org or user>", name = "<display name>"
 //   [repos.<name>]  one table per repo, with the channel fields it publishes to:
 //            pypi, npm, ghcr, hacs_zip, ha_domain, goatcounter (see README), plus optional
-//            family (a key of [families]), category (["experimental", "internal", ...]) and archived.
+//            family (a key of [families]), category (["experimental", "internal", ...]), archived, and
+//            formerly = { name, hacs_zip, npm, pypi, ha_domain }: what a renamed product was called before.
 //   [families.<id>]  optional: label = "<heading>", in display order
 //
 // [stats] (all optional; paths relative to repos.toml):
@@ -39,6 +40,9 @@ export function loadConfig({ config, data, legacy, out } = {}) {
     outPath: path.resolve(out ?? (stats.out ? path.resolve(dir, stats.out) : path.join(dataDir, "..", "stats.json"))),
   };
 }
+
+// A channel's names for a repo or community entry: the current one, then any from `formerly` (string or list).
+export const channelNames = (entry, field) => [entry[field], ...[entry.formerly?.[field] ?? []].flat()].filter(Boolean);
 
 // [family, heading] in display order, `meta` (the org's own repos) last under its own label.
 export function families(registry) {

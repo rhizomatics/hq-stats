@@ -55,6 +55,7 @@ ghcr = "my-image" # container image under ghcr.io/<org>/
 hacs_zip = "my_integration.zip" # the release asset HACS downloads
 ha_domain = "my_integration" # Home Assistant integration domain, for install counts
 goatcounter = "my-library-docs" # GoatCounter site code for the project's website
+formerly = { hacs_zip = "old_name.zip" } # names it had before a rename, still counted (see below)
 
 [repos.www]
 family = "meta"
@@ -69,6 +70,14 @@ hacs_zip = "my-library-card.js" # the same channel fields as a repo: npm, pypi, 
 
 Other optional fields per repo: `archived = true` (left off the pages), `category = ["experimental"]` (not
 counted as a product site) or `["internal"]` (left out), `description` (used until the first snapshot has one).
+
+A product that's been renamed keeps its history with `formerly`, on a repo or a community project. Each field takes
+one name or a list:
+
+- `name`: the repo's key before the rename. Snapshots from before then are read under the new key.
+- `hacs_zip`: the release asset's old name. Older releases keep it, so both names are counted.
+- `npm`, `pypi`: the old package. Its downloads are added to the new one's.
+- `ha_domain`: the old integration domain. Its installs are added to the new one's.
 
 Community projects are collected from public sources only (stars, releases, downloads; no traffic, which only
 their authors can see), stored under `community` in the snapshots and the aggregate, and shown on a Community page.

@@ -15,6 +15,7 @@ import { readFile, readdir, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { get } from "./http.js";
 import { addDays, communityProjects, npmPath } from "./collect.js";
+import { channelNames } from "./config.js";
 
 export const FORMAT_VERSION = 1;
 const DAY = 86_400_000;
@@ -100,6 +101,41 @@ export async function loadSnapshots(dir) {
   return Promise.all(files.map(async (f) => ({ date: f.slice(0, 10), ...(await readJson(path.join(dir, f))) })));
 }
 
+// A renamed repo (`formerly.name`) is read under its current name from snapshots and legacy history made before
+// the rename.
+export function applyRenames(registry, snapshots, legacy) {
+  const renames = (section) =>
+    Object.entries(section ?? {}).flatMap(([name, e]) => [e.formerly?.name ?? []].flat().map((old) => [old, name]));
+  const move = (group, pairs) => {
+    for (const [old, name] of pairs) if (group?.[old] && !group[name]) group[name] = group[old];
+  };
+  const repos = renames(registry.repos);
+  const community = renames(registry.community);
+  for (const s of snapshots) {
+    move(s.repos, repos);
+    move(s.community, community);
+  }
+  for (const projects of Object.values(legacy)) move(projects, repos);
+}
+
+// Daily figures summed across a package's current and former names.
+async function dailyAcross(fetch, names) {
+  const out = {};
+  for (const series of await Promise.all(names.map(fetch))) {
+    for (const [d, v] of Object.entries(series)) out[d] = (out[d] ?? 0) + v;
+  }
+  return out;
+}
+
+// Home Assistant installs today across an integration's current and former domains; versions are the current one's.
+function haLiveFor(haLive, entry) {
+  const found = channelNames(entry, "ha_domain")
+    .map((d) => haLive?.[d])
+    .filter(Boolean);
+  if (!found.length) return null;
+  return { ...found[0], total: found.reduce((s, x) => s + (x.total ?? 0), 0) };
+}
+
 async function loadLegacy(file) {
   if (!file) return {};
   try {
@@ -134,7 +170,10 @@ async function pypiDaily(pkg) {
 
 const ghcrPoints = (snapshots, repo) => snapshots.map((s) => [s.date, s.repos[repo]?.ghcr?.total]).filter(([, v]) => Number.isFinite(v));
 
-function hacsPoints(snapshots, legacy, repo, zip) {
+// A release's HACS downloads: its asset under the current `hacs_zip` name or any former one.
+const zipCount = (assets, zips) => zips.reduce((sum, z) => sum + (assets?.[z] ?? 0), 0);
+
+function hacsPoints(snapshots, legacy, repo, zips) {
   const points = {};
   for (const [date, projects] of Object.entries(legacy)) {
     const total = legacyProject(projects, repo)?.total;
@@ -143,21 +182,22 @@ function hacsPoints(snapshots, legacy, repo, zip) {
   for (const s of snapshots) {
     const assets = s.repos[repo]?.github?.release_assets;
     if (!assets || assets.error) continue;
-    points[s.date] = Object.values(assets).reduce((sum, a) => sum + (a[zip] ?? 0), 0);
+    points[s.date] = Object.values(assets).reduce((sum, a) => sum + zipCount(a, zips), 0);
   }
   return fromBaseline(Object.entries(points).sort((a, b) => a[0].localeCompare(b[0])));
 }
 
-function hacsVersions(snapshots, repo, zip) {
+function hacsVersions(snapshots, repo, zips) {
   const withAssets = snapshots.filter((s) => s.repos[repo]?.github?.release_assets && !s.repos[repo].github.release_assets.error);
   const latest = withAssets.at(-1);
   if (!latest) return [];
   const weekAgo = [...withAssets].reverse().find((s) => s.date <= addDays(latest.date, -7));
   return Object.entries(latest.repos[repo].github.release_assets)
-    .filter(([, a]) => zip in a)
+    .filter(([, a]) => zips.some((z) => z in a))
     .map(([tag, a]) => {
-      const before = weekAgo?.repos[repo].github.release_assets[tag]?.[zip];
-      return { version: tag, downloads: a[zip], last7: weekAgo ? a[zip] - (before ?? 0) : null };
+      const downloads = zipCount(a, zips);
+      const before = zipCount(weekAgo?.repos[repo].github.release_assets[tag], zips);
+      return { version: tag, downloads, last7: weekAgo ? downloads - before : null };
     });
 }
 
@@ -233,7 +273,7 @@ async function buildCommunity({ registry, snapshots, live, haLive, notes, today 
     const counted = Object.keys(all).length > 0 || fallback.d30 > 0;
     const stars = seriesFromSnapshots(snaps, {}, id, (r) => r?.github?.stars);
     const starWeekAgo = valueDaysAgo(stars, 7, today);
-    const haToday = e.ha_domain && haLive ? haLive[e.ha_domain] : null;
+    const haToday = e.ha_domain ? haLiveFor(haLive, e) : null;
     const [owner, repoName] = e.repo.split("/");
     out.push({
       id,
@@ -276,13 +316,13 @@ async function channelDownloads({ name, repo, snapshots, legacy, latest, live, n
     if (Number.isFinite(recent?.last_month)) fallback.d30 += recent.last_month;
   };
   if (repo.hacs_zip) {
-    const points = hacsPoints(snapshots, legacy, name, repo.hacs_zip);
+    const points = hacsPoints(snapshots, legacy, name, channelNames(repo, "hacs_zip"));
     downloads.hacs = cumulativeToDaily(points);
     totals.hacs = points.at(-1)?.[1] ?? null;
   }
   if (repo.npm && live) {
     try {
-      downloads.npm = await npmDaily(repo.npm);
+      downloads.npm = await dailyAcross(npmDaily, channelNames(repo, "npm"));
       totals.npm = Object.values(downloads.npm).reduce((a, b) => a + b, 0);
     } catch (e) {
       notes.push(`npm daily downloads for ${name} unavailable at build (${e.message}).`);
@@ -291,7 +331,7 @@ async function channelDownloads({ name, repo, snapshots, legacy, latest, live, n
   } else if (repo.npm) fallBackTo("npm");
   if (repo.pypi && live) {
     try {
-      downloads.pypi = await pypiDaily(repo.pypi);
+      downloads.pypi = await dailyAcross(pypiDaily, channelNames(repo, "pypi"));
     } catch (e) {
       notes.push(`PyPI daily downloads for ${name} unavailable at build (${e.message}).`);
       fallBackTo("pypi");
@@ -309,6 +349,7 @@ async function channelDownloads({ name, repo, snapshots, legacy, latest, live, n
 export async function aggregate(cfg, { log = console.log, warn = console.warn, live = true } = {}) {
   const { registry, org } = cfg;
   const [snapshots, legacy] = await Promise.all([loadSnapshots(cfg.dataDir), loadLegacy(cfg.legacyPath)]);
+  applyRenames(registry, snapshots, legacy);
   const latest = snapshots.at(-1);
   const haLive = live
     ? await get("https://analytics.home-assistant.io/custom_integrations.json").catch((e) => {
@@ -363,7 +404,7 @@ export async function aggregate(cfg, { log = console.log, warn = console.warn, l
           (p) => p?.haAnalytics?.total,
         )
       : {};
-    const haToday = repo.ha_domain && haLive ? haLive[repo.ha_domain] : null;
+    const haToday = repo.ha_domain ? haLiveFor(haLive, repo) : null;
     if (haToday) haInstalls[isoDate(Date.now())] = haToday.total;
     const lastLegacyHa = Object.values(legacy)
       .map((p) => legacyProject(p, name)?.haAnalytics)
@@ -415,7 +456,7 @@ export async function aggregate(cfg, { log = console.log, warn = console.warn, l
       repoViews: repoViewSeries,
       haInstalls,
       haVersions,
-      hacsVersions: repo.hacs_zip ? hacsVersions(snapshots, name, repo.hacs_zip) : [],
+      hacsVersions: repo.hacs_zip ? hacsVersions(snapshots, name, channelNames(repo, "hacs_zip")) : [],
     });
   }
 

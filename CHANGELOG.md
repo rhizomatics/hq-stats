@@ -4,9 +4,17 @@ title: What's New
 
 # 0.2.2
 
+## ✨ Enhancements
+
+- Renamed products keep their history: an optional `formerly = { name, hacs_zip, npm, pypi, ha_domain }` on a repo
+  or community project in `repos.toml`, each one name or a list. Snapshots taken under the old repo name are read
+  under the new one; release downloads count the old asset name too; old npm and PyPI packages' downloads and old
+  Home Assistant domains' installs are added to the current ones.
+
 ## Other Changes
 
-Strengthed string escaping and regex handling
+- Stronger string escaping and regex handling: scoped npm package names are encoded for the npm API without a
+  partial replace, and the `base` option is trimmed of slashes without a backtracking regex (CodeQL alerts).
 
 # 0.2.1
 
