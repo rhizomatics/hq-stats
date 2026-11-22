@@ -16,8 +16,7 @@ No AI, no cookies, no accounts beyond the tokens you already have.
 - **Community**: projects other people build on yours (plugins, cards, add-ons), from their public figures only,
   shown on their own page and never added to your totals
 
-It's the stats part of [Rhizomatics HQ](https://hq.rhizomatics.org.uk/usage/), where you can see the pages it
-makes. You don't need the rest of HQ to use it, or an organisation: a personal GitHub account works the same way.
+It's the stats part of [HQ](https://hq.rhizomatics.org.uk/usage/), a central management repo for developing multiple open source projects. Yoi can see there the output for Rhizomatics products using the pages it makes. You don't need the rest of HQ to use it, or an organisation: a personal GitHub account works the same way.
 
 ## How it works
 
