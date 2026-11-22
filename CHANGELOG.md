@@ -2,6 +2,11 @@
 title: What's New
 ---
 
+# 0.2.2
+
+## Other Changes
+Strengthed string escaping and regex handling
+
 # 0.2.1
 
 ## Other Changes
