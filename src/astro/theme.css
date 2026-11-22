@@ -1,0 +1,17 @@
+/* Optional: the hq-stats look, in the HQ family (navy, cream, and teal from the logo, docs/brand/logo.svg).
+   Add it to Starlight's customCss for a site with nothing else; leave it out to keep your own site's colours.
+   Teal is used only on dark backgrounds, where it has enough contrast; light mode uses navy. */
+:root {
+  --sl-color-accent-low: #1f2b40;
+  --sl-color-accent: #4fb3a9;
+  --sl-color-accent-high: #8fd3cb;
+  --sl-color-bg-nav: #1f2b40;
+  --sl-color-bg-sidebar: #1a2436;
+}
+:root[data-theme="light"] {
+  --sl-color-accent-low: #f4ead5;
+  --sl-color-accent: #2c3d5c;
+  --sl-color-accent-high: #1f2b40;
+  --sl-color-bg-nav: #f4ead5;
+  --sl-color-bg-sidebar: #fbf7ee;
+}

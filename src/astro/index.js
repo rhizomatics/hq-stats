@@ -9,11 +9,15 @@
 //   config  repos.toml                 default: $REPOS_TOML, ./repos.toml, ../repos.toml
 //   stats   the aggregate from `build`  default: [stats] out in repos.toml
 //   base    where the pages are mounted default: 'usage'
+//
+// Pages: <base>/ (Downloads), <base>/page-views/, <base>/<repo>/, and <base>/community/ when repos.toml lists
+// community projects.
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { families, loadConfig } from "../config.js";
+import { communityProjects } from "../collect.js";
 
 const VIRTUAL = "virtual:hq-stats";
 const RESOLVED = `\0${VIRTUAL}`;
@@ -39,6 +43,7 @@ export function readStats(statsPath, org) {
       notes: [`No stats yet: run \`hq-stats build\` (looked for ${statsPath}).`],
       components: [],
       websites: [],
+      community: [],
     };
   }
   return JSON.parse(readFileSync(statsPath, "utf8"));
@@ -69,6 +74,7 @@ export default function hqStats(options = {}) {
         });
         injectRoute({ pattern: `${base}`, entrypoint: page("downloads") });
         injectRoute({ pattern: `${base}/page-views`, entrypoint: page("page-views") });
+        if (communityProjects(cfg.registry).length) injectRoute({ pattern: `${base}/community`, entrypoint: page("community") });
         injectRoute({ pattern: `${base}/[id]`, entrypoint: page("component") });
       },
     },

@@ -9,6 +9,9 @@
 //   GITHUB_TOKEN (or GH_TOKEN, or `gh auth token`): read access to the repos, plus "Administration: read" for the
 //     traffic API. Without traffic access, views and clones are recorded as errors and the rest still works.
 //   GOATCOUNTER_TOKEN: an API key with "Read statistics", for repos with a `goatcounter` site code. Optional.
+//
+// Community projects (`[community.<id>]` with a `repo`, built on the org's products by other people) are snapshotted
+// under `community`, apart from the org's own repos, from public sources only: no traffic, no page views.
 
 import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -56,6 +59,31 @@ async function github(org, repo, token) {
     ),
   };
 }
+
+// A community project: someone else's public repo, so only what anyone can read. Null when private.
+async function communityGithub(fullName, token) {
+  const headers = { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" };
+  const base = `https://api.github.com/repos/${fullName}`;
+  const info = await get(base, { headers });
+  if (info.private) return null;
+  const releases = await get(`${base}/releases?per_page=100`, { headers });
+  const latest = releases.find((r) => !r.draft && !r.prerelease);
+  return {
+    description: info.description ?? "",
+    archived: Boolean(info.archived),
+    license: info.license?.spdx_id ?? null,
+    stars: info.stargazers_count,
+    forks: info.forks_count,
+    latest_release: latest ? { tag: latest.tag_name, date: latest.published_at, url: latest.html_url } : null,
+    release_assets: Object.fromEntries(
+      releases.map((r) => [r.tag_name, Object.fromEntries(r.assets.map((a) => [a.name, a.download_count]))]),
+    ),
+  };
+}
+
+// `[community.<id>]` entries that are projects (not blogs) with a GitHub repo.
+export const communityProjects = (registry) =>
+  Object.entries(registry.community ?? {}).filter(([, e]) => (e.kind ?? "project") === "project" && e.repo);
 
 async function npm(pkg) {
   const q = encodeURIComponent(pkg).replace("%40", "@");
@@ -131,15 +159,30 @@ export async function collect(cfg, { today = new Date().toISOString().slice(0, 1
     out.repos[name] = entry;
   }
 
+  const community = communityProjects(registry);
+  if (community.length) out.community = {};
+  for (const [id, e] of community) {
+    const gh = await safe(() => communityGithub(e.repo, token));
+    if (gh === null) continue;
+    const entry = { github: gh };
+    if (e.npm) entry.npm = await safe(() => npm(e.npm));
+    if (e.pypi) entry.pypi = await safe(() => pypi(e.pypi));
+    if (e.ghcr) entry.ghcr = await safe(() => ghcr(e.repo.split("/")[0], e.ghcr));
+    if (e.ha_domain && !haInstalls.error) entry.ha_installs = haInstalls[e.ha_domain]?.total ?? null;
+    out.community[id] = entry;
+  }
+
   const dest = path.join(cfg.dataDir, `${today}.json`);
   await mkdir(cfg.dataDir, { recursive: true });
   await writeFile(dest, `${JSON.stringify(sortKeys(out), null, 1)}\n`);
-  const errors = Object.entries(out.repos).flatMap(([n, e]) =>
+  const sections = [...Object.entries(out.repos), ...Object.entries(out.community ?? {}).map(([n, e]) => [`community.${n}`, e])];
+  const errors = sections.flatMap(([n, e]) =>
     Object.entries(e).flatMap(([k, v]) => [
       ...(v?.error ? [`${n}.${k}`] : []),
       ...(k === "github" ? ["views", "clones"].filter((t) => v?.[t]?.error).map((t) => `${n}.github.${t}`) : []),
     ]),
   );
-  log(`wrote ${path.relative(process.cwd(), dest)}${errors.length ? `; errors: ${errors.join(", ")}` : ""}`);
+  const shown = path.relative(process.cwd(), dest);
+  log(`wrote ${shown.startsWith("..") ? dest : shown}${errors.length ? `; errors: ${errors.join(", ")}` : ""}`);
   return { dest, snapshot: out, errors };
 }

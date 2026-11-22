@@ -1,6 +1,6 @@
 {
   "name": "@rhizomatics/hq-stats",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Usage stats for open source projects across the channels they publish to (PyPI, npm, GHCR, HACS, Home Assistant analytics, GitHub traffic, GoatCounter page views), with public pages for Astro/Starlight or raw JSON.",
   "keywords": [
     "analytics",
@@ -41,8 +41,10 @@
   "exports": {
     ".": "./src/index.js",
     "./astro": "./src/astro/index.js",
-    "./sidebar": "./src/astro/sidebar.js",
+    "./brand/logo.svg": "./docs/brand/logo.svg",
     "./pages/*": "./src/astro/pages/*",
+    "./sidebar": "./src/astro/sidebar.js",
+    "./theme.css": "./src/astro/theme.css",
     "./package.json": "./package.json"
   },
   "scripts": {
