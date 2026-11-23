@@ -7,7 +7,7 @@
 # hq-stats
 
 ![Logo](docs/brand/logo.svg) Usage stats for open source projects, from every channel they publish to, with public pages or raw JSON.
-No AI, no cookies, no accounts beyond the tokens you already have.
+No AI, no cookies, no accounts beyond the tokens you already have. Designed as part of [HQ](https://hq.rhizomatics.org.uk/usage/), a central management repo for developing multiple open source projects, although usable independently.
 
 - **Downloads**: PyPI, npm, GitHub Container Registry, HACS (Home Assistant's community store) release downloads
 - **Installs**: Home Assistant's public analytics for custom integrations
@@ -16,7 +16,7 @@ No AI, no cookies, no accounts beyond the tokens you already have.
 - **Community**: projects other people build on yours (plugins, cards, add-ons), from their public figures only,
   shown on their own page and never added to your totals
 
-It's the stats part of [HQ](https://hq.rhizomatics.org.uk/usage/), a central management repo for developing multiple open source projects. Yoi can see there the output for Rhizomatics products using the pages it makes. You don't need the rest of HQ to use it, or an organisation: a personal GitHub account works the same way.
+See it in context at the [Rhizomatics HQ](https://hq.rhizomatics.org.uk/usage/), with the page views and downloads across all of the supported page analytics and download types. Use it as part of your own HQ, integrate the results pages into your own site, or just use the JSON results for your own analytics. It works fine with a personal GitHub account, or a GitHub organization.
 
 ![Example Stats](docs/images/rhizo_stats_example.png)
 
