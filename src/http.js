@@ -2,23 +2,37 @@
 export const USER_AGENT = "hq-stats (+https://github.com/rhizomatics/hq-stats)";
 
 export class HttpError extends Error {
-  constructor(status, url) {
+  // `body` is the start of the error response, kept for diagnosis; the message stays `HTTP <status>`.
+  constructor(status, url, body = "") {
     super(`HTTP ${status}`);
     this.status = status;
     this.url = url;
+    this.body = body;
   }
 }
 
-export async function get(url, { headers = {}, raw = false, attempts = 3 } = {}) {
+const errorBody = async (res) => {
+  try {
+    return (await res.text()).replace(/\s+/g, " ").trim().slice(0, 200);
+  } catch {
+    return "";
+  }
+};
+
+// Retries what might pass next time: rate limits, server errors, and any status in `retryOn` (for an API known
+// to fail spuriously with it).
+export async function get(url, { headers = {}, raw = false, attempts = 3, retryOn = [] } = {}) {
+  const retryable = (status) => status === 429 || status >= 500 || retryOn.includes(status);
   for (let attempt = 1; ; attempt += 1) {
     try {
       const res = await fetch(url, { headers: { "User-Agent": USER_AGENT, ...headers }, signal: AbortSignal.timeout(30_000) });
       if (res.ok) return raw ? await res.text() : await res.json();
-      // Retry only what might pass next time: rate limits and server errors.
-      if (res.status !== 429 && res.status < 500) throw new HttpError(res.status, url);
-      if (attempt >= attempts) throw new HttpError(res.status, url);
+      const err = new HttpError(res.status, url, await errorBody(res));
+      if (!retryable(res.status) || attempt >= attempts) throw err;
+      const { host, pathname } = new URL(url);
+      console.warn(`hq-stats: ${err.message} from ${host}${pathname}, retrying`);
     } catch (err) {
-      if (err instanceof HttpError && err.status !== 429 && err.status < 500) throw err;
+      if (err instanceof HttpError && !retryable(err.status)) throw err;
       if (attempt >= attempts) throw err;
     }
     await new Promise((r) => setTimeout(r, 2000 * attempt));
