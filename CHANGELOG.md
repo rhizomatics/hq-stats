@@ -2,6 +2,14 @@
 title: What's New
 ---
 
+# 0.2.3
+
+## Other Changes
+
+- GoatCounter page views: a 404 from the stats API is retried, and a failure now records which call failed and
+  the start of GoatCounter's error body (`HTTP 404 on stats/hits: ...`) instead of a bare `HTTP 404`.
+- HTTP errors keep the first 200 characters of the response body for diagnosis.
+
 # 0.2.2
 
 ## ✨ Enhancements

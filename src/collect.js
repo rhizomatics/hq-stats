@@ -17,7 +17,7 @@ import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { channelNames } from "./config.js";
-import { get, sleep } from "./http.js";
+import { get, HttpError, sleep } from "./http.js";
 
 export function githubToken() {
   const env = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
@@ -125,13 +125,24 @@ async function ghcr(org, image) {
 // Page views per day for the 14 complete days before today, and the top pages of the last 30. Overlapping
 // windows, like GitHub traffic, so a missed run loses nothing. GoatCounter counts one view per page per visitor
 // session, bots excluded.
+// A failure records which call failed and the start of GoatCounter's error body, e.g.
+// `HTTP 404 on stats/hits: {"error":"..."}`. 404s are retried: a site has returned them on some days and data on
+// others, with the same token and config.
 async function goatcounter(code, token, today) {
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
   const base = `https://${code}.goatcounter.com/api/v0/stats`;
   const day = (n) => `${addDays(today, -n)}T00:00:00Z`;
-  const total = await get(`${base}/total?start=${day(14)}&end=${day(0)}`, { headers });
+  const call = async (name, query) => {
+    try {
+      return await get(`${base}/${name}?${query}`, { headers, retryOn: [404] });
+    } catch (e) {
+      const body = e instanceof HttpError && e.body ? `: ${e.body}` : "";
+      throw new Error(`${e.message} on stats/${name}${body}`, { cause: e });
+    }
+  };
+  const total = await call("total", `start=${day(14)}&end=${day(0)}`);
   await sleep(300); // GoatCounter allows 4 requests a second
-  const hits = await get(`${base}/hits?start=${day(30)}&end=${day(0)}&limit=10`, { headers });
+  const hits = await call("hits", `start=${day(30)}&end=${day(0)}&limit=10`);
   await sleep(300);
   return {
     site: code,
