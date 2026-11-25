@@ -1,6 +1,6 @@
 {
   "name": "@rhizomatics/hq-stats",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Usage stats for open source projects across the channels they publish to (PyPI, npm, GHCR, HACS, Home Assistant analytics, GitHub traffic, GoatCounter page views), with public pages for Astro/Starlight or raw JSON.",
   "keywords": [
     "analytics",

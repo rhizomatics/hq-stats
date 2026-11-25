@@ -30,6 +30,26 @@ aggregate turns them into series.
       "pypi": { "last_day": 10, "last_week": 70, "last_month": 300 },
       "ghcr": { "total": 88551 }, // lifetime pulls
       "ha_installs": 96, // Home Assistant installs reporting the integration
+      "health": {
+        // from 0.4.0: how its platform rates it, when it does (src/health.js)
+        "homeassistant": {
+          "domain": "<domain>",
+          "declared": "silver", // manifest.json's quality_scale, or null
+          "assessed": "silver", // what quality_scale.yaml adds up to, or null below bronze
+          "next": { "tier": "gold", "todo": ["diagnostics"] }, // null at platinum
+          "assessment_url": "https://github.com/…/quality_scale.yaml",
+        },
+        "signalk": {
+          "package": "@scope/plugin",
+          "version": "1.2.0",
+          "score": 95, // out of 100
+          "badges": ["compatible", "tested"],
+          "test_status": "passing",
+          "plugin_ci": "ok",
+          "last_tested": "2026-11-18T09:28:13Z",
+          "url": "https://signalk.org/signalk-plugin-registry/#…",
+        },
+      },
       "goatcounter": {
         "site": "<code>",
         "daily": { "2026-11-18": 7 }, // the 14 complete days before the snapshot
@@ -94,6 +114,7 @@ Written by `hq-stats build`. What the pages show, and the interface for your own
 | `pageViews`, `topPages`, `website`, `analytics` | the product's website, if it has one (as in Website below)                                                                                                                                                    |
 | `haVersions`                                    | Home Assistant installs by version, or null                                                                                                                                                                   |
 | `hacsVersions`                                  | `[{ version, downloads, last7 }]`: release zip downloads by tag, lifetime and last 7 days                                                                                                                     |
+| `health`                                        | from 0.4.0: its platform's rating from the latest snapshot that has one, as in the snapshot (`homeassistant`, `signalk`), or null                                                                             |
 
 ### Website
 

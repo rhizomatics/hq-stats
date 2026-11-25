@@ -13,6 +13,8 @@ No AI, no cookies, no accounts beyond the tokens you already have. Designed as p
 - **Installs**: Home Assistant's public analytics for custom integrations
 - **GitHub**: stars, repo page views and clones (GitHub keeps 14 days; hq-stats snapshots them daily so they're kept)
 - **Websites**: page views from [GoatCounter](https://www.goatcounter.com/), which needs no cookie banner
+- **Platform ratings**: Home Assistant's Integration Quality Scale (the level each integration declares, and the
+  level its own `quality_scale.yaml` adds up to) and the SignalK plugin registry's score, badges and test status
 - **Community**: projects other people build on yours (plugins, cards, add-ons), from their public figures only,
   shown on their own page and never added to your totals
 

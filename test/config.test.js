@@ -242,7 +242,11 @@ test("build: a product of several repos sums their GitHub figures; its id can di
     path.join(dir, "data", "stats", "2026-01-03.json"),
     JSON.stringify({
       repos: {
-        "suite-core": { github: gh(5, [day("2026-01-02", 2)]), pypi: { last_week: 7, last_month: 30 } },
+        "suite-core": {
+          github: gh(5, [day("2026-01-02", 2)]),
+          pypi: { last_week: 7, last_month: 30 },
+          health: { signalk: { score: 95, badges: ["tested"] } },
+        },
         "suite-extra": { github: gh(2, [day("2026-01-02", 3)]) },
         ".github": { github: gh(0, []), goatcounter: { site: "home", daily: { "2026-01-02": 4 }, top_pages_30d: [] } },
       },
@@ -256,6 +260,7 @@ test("build: a product of several repos sums their GitHub figures; its id can di
   assert.equal(suite.kpis.stars, 7);
   assert.equal(suite.kpis.repoViews14, 5);
   assert.equal(suite.kpis.downloads7, 7);
+  assert.deepEqual(suite.health, { signalk: { score: 95, badges: ["tested"] } });
   assert.deepEqual(
     stats.websites.map((w) => [w.id, w.views7]),
     [["homepage", 4]],
