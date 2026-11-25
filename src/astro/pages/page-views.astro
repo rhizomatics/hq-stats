@@ -5,7 +5,7 @@ import { Icon } from '@astrojs/starlight/components';
 import Chart from '../components/Chart.astro';
 import Kpi from '../components/Kpi.astro';
 import Credit from '../components/Credit.astro';
-import { FAMILIES, META_LABEL, ORG, REPO_VIEWS_NOTE, VIEWS_NOTE, data, fmt, pageViewSpecs, repoViewRows, usageHref, viewsViews } from '../usage';
+import { LINES, ORG_LINES, ORG, REPO_VIEWS_NOTE, VIEWS_NOTE, data, fmt, lineOf, pageViewSpecs, repoViewRows, usageHref, viewsViews } from '../usage';
 
 const sites = data.websites;
 const counted = sites.filter((s) => s.views30 != null);
@@ -16,12 +16,12 @@ const specs = pageViewSpecs(sites, repos);
 const sourcesNote = `${counted.length} websites, ${repos.length} repos`;
 const firstDay = sites.flatMap((s) => Object.keys(s.daily)).sort()[0];
 const componentIds = new Set(data.components.map((c) => c.id));
-// Families in repos.toml order, the org's own sites (`meta`), then any site whose family isn't listed.
-const known = new Set([...FAMILIES.map(([f]) => f), 'meta']);
+// Product lines in the config's order, the org's own lines, then any site whose line isn't listed.
+const known = new Set([...LINES, ...ORG_LINES].map(([l]) => l));
 const byViews = (list: typeof sites) => [...list].sort((a, b) => (b.views30 ?? -1) - (a.views30 ?? -1));
 const groups = [
-  ...[...FAMILIES, ['meta', META_LABEL]].map(([family, label]) => [label, byViews(sites.filter((s) => s.family === family))] as const),
-  ['Other', byViews(sites.filter((s) => !known.has(s.family ?? '')))] as const,
+  ...[...LINES, ...ORG_LINES].map(([line, label]) => [label, byViews(sites.filter((s) => lineOf(s) === line))] as const),
+  ['Other', byViews(sites.filter((s) => !known.has(lineOf(s) ?? '')))] as const,
 ].filter(([, list]) => list.length);
 ---
 <StarlightPage frontmatter={{ title: 'Page views', description: `Page views of every ${ORG.name} website and product repo: product docs sites, the organisation's own sites and the repos on GitHub.`, tableOfContents: false }}>

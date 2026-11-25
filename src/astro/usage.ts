@@ -2,8 +2,11 @@ import { config, stats as raw } from "virtual:hq-stats";
 import type { Stats } from "./types";
 
 const stats = raw as Stats;
-export const FAMILIES = config.families;
-export const META_LABEL = config.metaLabel;
+// Product lines in display order as [id, name], then the org's own lines (its sites, HQ itself).
+export const LINES = config.lines;
+export const ORG_LINES = config.orgLines;
+/** @deprecated 0.2's name for LINES */
+export const FAMILIES = LINES;
 export const ORG = config.org;
 
 // A link inside the Usage pages: `path` is relative to where they're mounted (e.g. '/', 'page-views/').
@@ -27,7 +30,11 @@ export const CHANNELS: { id: Channel; label: string; slot: number; note: string 
 ];
 
 export const data = stats;
-export const familyLabel = (family: string) => FAMILIES.find(([f]) => f === family)?.[1] ?? family;
+export const lineLabel = (line: string) => [...LINES, ...ORG_LINES].find(([l]) => l === line)?.[1] ?? line;
+/** @deprecated 0.2's name for lineLabel */
+export const familyLabel = lineLabel;
+// A component's or website's line; stats.json from before 0.3 only has `family`.
+export const lineOf = (x: { line?: string | null; family?: string | null }) => x.line ?? x.family ?? null;
 
 export type ChartSpec = {
   type: "bar" | "line";

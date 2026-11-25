@@ -4,15 +4,16 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import Chart from '../components/Chart.astro';
 import Kpi from '../components/Kpi.astro';
 import Credit from '../components/Credit.astro';
-import { CHANNELS, FAMILIES, ORG, combinedDownloads, data, downloadsSpecs, familyLabel, fmt, usageHref } from '../usage';
+import { CHANNELS, LINES, ORG, combinedDownloads, data, downloadsSpecs, fmt, lineLabel, lineOf, usageHref } from '../usage';
 
 const components = data.components;
 const sum = (f: (c: (typeof components)[number]) => number | null) => components.reduce((s, c) => s + (f(c) ?? 0), 0);
 const downloads = downloadsSpecs(combinedDownloads());
-// Families in repos.toml order, then any component without one. A family gets an HA installs column when any of
-// its components reports to Home Assistant's analytics.
-const families = [...FAMILIES.map(([family]) => family), null]
-  .map((family) => [family, components.filter((c) => (c.family ?? null) === family || (family === null && !FAMILIES.some(([f]) => f === c.family)))] as const)
+// Product lines in the config's order, then any component without one. A line gets an HA installs column when any
+// of its components reports to Home Assistant's analytics.
+const listed = new Set(LINES.map(([l]) => l));
+const groups = [...LINES.map(([line]) => line), null]
+  .map((line) => [line, components.filter((c) => (line === null ? !listed.has(lineOf(c) ?? '') : lineOf(c) === line))] as const)
   .filter(([, list]) => list.length);
 const hasHa = (list: typeof components) => list.some((c) => c.kpis.haInstalls != null);
 const firstDate = (id: string) =>
@@ -41,9 +42,9 @@ const firstDate = (id: string) =>
     />
   )}
 
-  {families.map(([family, list]) => (
+  {groups.map(([line, list]) => (
     <>
-      {family !== null || families.length > 1 ? <h2>{family === null ? 'Other' : familyLabel(family)}</h2> : null}
+      {line !== null || groups.length > 1 ? <h2>{line === null ? 'Other' : lineLabel(line)}</h2> : null}
       <table class="usage-table">
         <thead>
           <tr>

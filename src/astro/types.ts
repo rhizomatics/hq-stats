@@ -1,4 +1,4 @@
-// The public aggregate `hq-stats build` writes (stats.json), format 1. Documented in docs/data-format.md.
+// The public aggregate `hq-stats build` writes (stats.json), format 2. Documented in docs/data-format.md.
 // Dates are YYYY-MM-DD (UTC); a Daily maps a date to that day's figure.
 
 export type Daily = Record<string, number>;
@@ -6,8 +6,10 @@ export type Traffic = Record<string, { count: number; uniques: number }>;
 export type ChannelId = "hacs" | "npm" | "pypi" | "ghcr";
 
 export interface Component {
-  id: string;
-  family: string | null;
+  id: string; // the product's slug
+  line: string | null; // from format 2
+  family: string | null; // same as line; dropped at 1.0
+  repos: string[]; // from format 2: its public repos
   description: string;
   url: string;
   major: boolean;
@@ -39,7 +41,8 @@ export interface Component {
 
 export interface Website {
   id: string;
-  family: string | null;
+  line: string | null; // from format 2
+  family: string | null; // same as line; dropped at 1.0
   product: boolean;
   description: string;
   analytics: string;
@@ -57,6 +60,7 @@ export interface CommunityProject {
   author: string;
   authorUrl: string;
   extends: string | null;
+  line: string | null; // from format 2: the line of the product it extends
   description: string;
   license: string | null;
   archived: boolean;

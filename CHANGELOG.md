@@ -2,6 +2,31 @@
 title: What's New
 ---
 
+# 0.3.0
+
+## ✨ Enhancements
+
+- Products, product lines and artefacts: the configuration is now `hq.toml` (the org, `[stats]`, `[lines]` in
+  display order, `[platforms]`), `products.toml` (one table per product: `line`, `repos`, `significance`,
+  `lifecycle`, `public`, `platform`, and `artefacts.<name>` for each package, release asset or website it's
+  delivered as) and, optionally, `community.toml`. See the README's Configuration section.
+- A product can be built in several repos (`repos = [...]`); its stars, traffic and release downloads are summed.
+  Its slug can differ from its repo's name. Each repo belongs to one product.
+- `hq-stats migrate` writes the three files from a `repos.toml`. Families become lines (`meta` a line with
+  `kind = "org"`), `upstream` becomes `platform`, `category` becomes `significance`, `lifecycle` and `public`, and
+  the channel fields become artefacts. Snapshots and page URLs don't change.
+- `stats.json` is format 2: components, websites and community projects gain `line`, and components `repos`.
+  `family` stays, with the same value as `line`, until 1.0.
+- The library exports `loadConfig` (one normalised model, whichever layout it read), `fromLayout`,
+  `reposTomlToLayout`, `channels`, `lines`, `isProduct` and `migrate`, so a host site can read the same config.
+
+## Deprecated
+
+- `repos.toml` is still read, with a one-line notice, until at least 1.0 and not before 2027-06-01. Run
+  `hq-stats migrate`, check the files, then delete it.
+- In `stats.json`, `family` (use `line`); in the pages' helpers, `FAMILIES` and `familyLabel` (use `LINES` and
+  `lineLabel`). All go at 1.0.
+
 # 0.2.3
 
 ## Other Changes

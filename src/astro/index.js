@@ -6,17 +6,17 @@
 //   integrations: [starlight({ sidebar: [{ label: 'Usage', items: usageSidebar() }] }), hqStats()]
 //
 // Options (paths relative to the site's root):
-//   config  repos.toml                 default: $REPOS_TOML, ./repos.toml, ../repos.toml
-//   stats   the aggregate from `build`  default: [stats] out in repos.toml
-//   base    where the pages are mounted default: 'usage'
+//   config  the directory with hq.toml (or a repos.toml)  default: $HQ_CONFIG, $REPOS_TOML, ., ..
+//   stats   the aggregate from `build`                     default: [stats] out in hq.toml
+//   base    where the pages are mounted                    default: 'usage'
 //
-// Pages: <base>/ (Downloads), <base>/page-views/, <base>/<repo>/, and <base>/community/ when repos.toml lists
+// Pages: <base>/ (Downloads), <base>/page-views/, <base>/<product>/, and <base>/community/ when the config lists
 // community projects.
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { families, loadConfig } from "../config.js";
+import { lines, loadConfig } from "../config.js";
 import { communityProjects } from "../collect.js";
 
 const VIRTUAL = "virtual:hq-stats";
@@ -34,7 +34,7 @@ export function resolveOptions(options = {}, root = process.cwd()) {
 export function readStats(statsPath, org) {
   if (!existsSync(statsPath)) {
     return {
-      format: 1,
+      format: 2,
       generatedAt: null,
       org,
       snapshotDate: null,
@@ -55,7 +55,7 @@ export default function hqStats(options = {}) {
     hooks: {
       "astro:config:setup": ({ config, injectRoute, updateConfig }) => {
         const { cfg, base, statsPath } = resolveOptions(options, fileURLToPath(config.root));
-        const { families: fams, metaLabel } = families(cfg.registry);
+        const { lines: productLines, orgLines } = lines(cfg);
         updateConfig({
           vite: {
             plugins: [
@@ -66,7 +66,7 @@ export default function hqStats(options = {}) {
                   if (id !== RESOLVED) return undefined;
                   if (existsSync(statsPath)) this.addWatchFile(statsPath);
                   const stats = readStats(statsPath, cfg.org);
-                  return `export const stats = ${JSON.stringify(stats)};\nexport const config = ${JSON.stringify({ base, org: cfg.org, families: fams, metaLabel })};\n`;
+                  return `export const stats = ${JSON.stringify(stats)};\nexport const config = ${JSON.stringify({ base, org: cfg.org, lines: productLines, orgLines })};\n`;
                 },
               },
             ],
@@ -74,7 +74,7 @@ export default function hqStats(options = {}) {
         });
         injectRoute({ pattern: `${base}`, entrypoint: page("downloads") });
         injectRoute({ pattern: `${base}/page-views`, entrypoint: page("page-views") });
-        if (communityProjects(cfg.registry).length) injectRoute({ pattern: `${base}/community`, entrypoint: page("community") });
+        if (communityProjects(cfg).length) injectRoute({ pattern: `${base}/community`, entrypoint: page("community") });
         injectRoute({ pattern: `${base}/[id]`, entrypoint: page("component") });
       },
     },
