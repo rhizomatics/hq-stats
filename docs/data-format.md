@@ -109,14 +109,15 @@ Written by `hq-stats build`. What the pages show, and the interface for your own
 
 ### Community project
 
-From 0.2.0. Projects other people have built on the org's products (`community.toml`), from public
+From 0.2.0. Projects other people have built on the org's products, or recommended to be used with them (`community.toml`), from public
 sources only. Kept apart from `components`: nothing here is added to any of the org's figures.
 
 | Field                                                 | Meaning                                                                                   |
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `id`, `name`, `url`                                   | its key in `community.toml`, the repo's name and its GitHub URL                           |
 | `author`, `authorUrl`                                 | the author's GitHub login (from `author`, else the repo's owner) and profile URL          |
-| `extends`                                             | the org's product it builds on, or null                                                   |
+| `extends`                                             | the org's product it builds on or goes with, or null                                      |
+| `relation`                                            | from 0.3.1: `extends` (built on it) or `recommended` (recommended to use with it)         |
 | `line`                                                | from format 2: that product's line, or its own `line`, or null                            |
 | `description`, `license`, `archived`, `latestRelease` | from GitHub; `latestRelease` is `{ tag, date, url }` for the latest full release, or null |
 | `channels`, `downloads`                               | as for a component                                                                        |

@@ -5,7 +5,7 @@ import Chart from '../components/Chart.astro';
 import Kpi from '../components/Kpi.astro';
 import { CHANNELS, ORG, combinedDownloads, data, downloadsSpecs, fmt, usageHref, viewsViews, type CommunityProject } from '../usage';
 
-// Projects other people have built on the org's products (`community.toml`). Their figures are
+// Projects other people have built on the org's products, or recommended to be used with them (`community.toml`). Their figures are
 // shown here only, never added to the org's own totals.
 const projects = (data.community ?? []) as CommunityProject[];
 const components = new Set(data.components.map((c) => c.id));
@@ -20,10 +20,10 @@ const lifetime = (p: CommunityProject) => {
 };
 const day = (t: string) => t.slice(0, 10);
 ---
-<StarlightPage frontmatter={{ title: 'Community', description: `Usage of projects other people have built on ${ORG.name} products.`, tableOfContents: false }}>
+<StarlightPage frontmatter={{ title: 'Community', description: `Usage of projects other people have built on ${ORG.name} products, or recommended to be used with them.`, tableOfContents: false }}>
   <p>
-    Projects other people have built on {ORG.name} products, grouped by the product they extend. They're made and
-    maintained by their authors. Their figures come from public sources only and are never added to the totals on
+    Projects other people have built on {ORG.name} products, or recommended to be used with them, grouped by the
+    product they go with. They're made and maintained by their authors. Their figures come from public sources only and are never added to the totals on
     the <a href={usageHref()}>Downloads</a> page. Updated daily; numbers to {data.snapshotDate}.
   </p>
 
@@ -55,7 +55,10 @@ const day = (t: string) => t.slice(0, 10);
             <tbody>
               {list.map((p) => (
                 <tr>
-                  <th scope="row"><a href={p.url}>{p.name}</a>{p.archived && <span class="hq-stats-meta"> (archived)</span>}</th>
+                  <th scope="row">
+                    <a href={p.url}>{p.name}</a>{p.archived && <span class="hq-stats-meta"> (archived)</span>}
+                    {p.relation === 'recommended' && <div class="hq-stats-meta">recommended to use with it</div>}
+                  </th>
                   <td><a href={p.authorUrl}>{p.author}</a></td>
                   <td>{p.description}</td>
                   <td>{p.latestRelease ? <><a href={p.latestRelease.url}>{p.latestRelease.tag}</a> <span class="hq-stats-meta">{day(p.latestRelease.date)}</span></> : <span class="hq-stats-meta">–</span>}</td>

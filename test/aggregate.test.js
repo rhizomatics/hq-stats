@@ -101,6 +101,7 @@ test("build: community projects kept apart from the org's components and totals"
   assert.equal(card.kpis.stars, 14);
   assert.equal(card.license, "MIT");
   assert.equal(card.latestRelease.tag, "v2");
+  assert.equal(card.relation, "extends"); // the default; "recommended" passes through
   // Nothing of the community project reaches the org's own figures.
   assert.ok(!stats.components.some((c) => c.id === "widget-card"));
   assert.equal(stats.components[0].kpis.downloads7, 10);

@@ -61,6 +61,7 @@ export interface CommunityProject {
   authorUrl: string;
   extends: string | null;
   line: string | null; // from format 2: the line of the product it extends
+  relation?: "extends" | "recommended"; // from 0.3.1: built on the product, or recommended to use with it
   description: string;
   license: string | null;
   archived: boolean;

@@ -80,6 +80,7 @@ artefacts.website = { goatcounter = "my-org" }
 repo = "someone/my-library-card" # owner/name on GitHub
 author = "someone" # GitHub login (default: the repo's owner)
 extends = "my-library" # which of your products it builds on
+# relation = "recommended" # optional: someone else's project you recommend using with it, rather than built on it
 artefacts.homeassistant_marketplace_frontend = { asset = "my-library-card.js" }
 ```
 

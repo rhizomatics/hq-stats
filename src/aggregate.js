@@ -307,7 +307,7 @@ function sumChannels(downloads) {
   return all;
 }
 
-// Community projects: other people's public projects built on the org's products. Built from their own section of
+// Community projects: other people's public projects built on the org's products, or recommended with them. Built from their own section of
 // the snapshots, so nothing here is ever added to the org's components or totals.
 async function buildCommunity({ cfg, snapshots, live, haLive, notes, today }) {
   const entries = communityProjects(cfg);
@@ -346,6 +346,7 @@ async function buildCommunity({ cfg, snapshots, live, haLive, notes, today }) {
       author: e.author ?? owner,
       authorUrl: `https://github.com/${e.author ?? owner}`,
       extends: e.extends,
+      relation: e.relation === "recommended" ? "recommended" : "extends",
       line: e.line,
       description: gh.description ?? "",
       license: gh.license ?? null,
