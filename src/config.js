@@ -10,7 +10,8 @@
 //                      formerly = { name } (repo names before a rename),
 //                      artefacts.<name> = "<package>" | { distribution (default: <name>), package, asset, domain,
 //                                                         goatcounter, platform, formerly = { ... } }
-//     community.toml one table per community entry: kind ("project" | "blog"), repo, author, extends (a product
+//     community.toml one table per community entry: kind ("project" | "blog"), repo, author, relation ("extends", the
+//                    default, or "recommended": someone else's project recommended to use with the product), extends (a product
 //                    slug), line, artefacts as on a product; blogs: title, url, author, note
 //
 //   repos.toml (deprecated, read until at least 1.0)

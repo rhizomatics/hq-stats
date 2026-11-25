@@ -2,6 +2,14 @@
 title: What's New
 ---
 
+# 0.3.1
+
+## ✨ Enhancements
+
+- Community projects can be recommended rather than built on: `relation = "recommended"` on an entry in
+  `community.toml` (the default is `"extends"`). `stats.json` carries `relation` on each community project, and
+  the Community page says "built on ... or recommended to be used with" the products, marking recommended ones.
+
 # 0.3.0
 
 ## ✨ Enhancements
