@@ -1,4 +1,4 @@
-// Daily snapshot of every public repo in repos.toml: <data_dir>/YYYY-MM-DD.json.
+// Daily snapshot of every public repo of every product in the config: <data_dir>/YYYY-MM-DD.json.
 //
 // Deterministic, no AI. Run it daily: GitHub keeps traffic (repo views, clones) for 14 days only, so anything
 // not snapshotted is lost. Trends come from the accumulated snapshots (`hq-stats build`).
@@ -8,15 +8,18 @@
 // Tokens:
 //   GITHUB_TOKEN (or GH_TOKEN, or `gh auth token`): read access to the repos, plus "Administration: read" for the
 //     traffic API. Without traffic access, views and clones are recorded as errors and the rest still works.
-//   GOATCOUNTER_TOKEN: an API key with "Read statistics", for repos with a `goatcounter` site code. Optional.
+//   GOATCOUNTER_TOKEN: an API key with "Read statistics", for products with a `website` artefact. Optional.
 //
-// Community projects (`[community.<id>]` with a `repo`, built on the org's products by other people) are snapshotted
-// under `community`, apart from the org's own repos, from public sources only: no traffic, no page views.
+// Snapshots are keyed by repo. A product's channel figures (npm, PyPI, GHCR, HA installs, page views) go on its first
+// public repo's entry; a product of several repos is put together again at build time.
+//
+// Community projects (with a `repo`, built on the org's products by other people) are snapshotted under `community`,
+// apart from the org's own repos, from public sources only: no traffic, no page views.
 
 import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { channelNames } from "./config.js";
+import { channels } from "./config.js";
 import { get, HttpError, sleep } from "./http.js";
 
 export function githubToken() {
@@ -82,9 +85,8 @@ async function communityGithub(fullName, token) {
   };
 }
 
-// `[community.<id>]` entries that are projects (not blogs) with a GitHub repo.
-export const communityProjects = (registry) =>
-  Object.entries(registry.community ?? {}).filter(([, e]) => (e.kind ?? "project") === "project" && e.repo);
+// Community entries that are projects (not blogs) with a GitHub repo.
+export const communityProjects = (cfg) => cfg.community.filter((e) => e.kind === "project" && e.repo);
 
 // A package name as a path segment of the npm downloads API: `@scope/name` -> `@scope%2Fname`.
 export const npmPath = (pkg) => (pkg.startsWith("@") ? `@${encodeURIComponent(pkg.slice(1))}` : encodeURIComponent(pkg));
@@ -107,10 +109,8 @@ async function summed(fetch, names) {
   return Object.fromEntries(Object.keys(all[0]).map((k) => [k, all.some((r) => r[k] == null) ? null : all.reduce((s, r) => s + r[k], 0)]));
 }
 
-const haTotal = (haInstalls, entry) => {
-  const found = channelNames(entry, "ha_domain")
-    .map((d) => haInstalls[d]?.total)
-    .filter(Number.isFinite);
+const haTotal = (haInstalls, domains) => {
+  const found = domains.map((d) => haInstalls[d]?.total).filter(Number.isFinite);
   return found.length ? found.reduce((a, b) => a + b, 0) : null;
 };
 
@@ -167,37 +167,43 @@ export function sortKeys(value) {
 }
 
 export async function collect(cfg, { today = new Date().toISOString().slice(0, 10), log = console.log } = {}) {
-  const { registry, org } = cfg;
+  const { org } = cfg;
   const token = githubToken();
   const gcToken = process.env.GOATCOUNTER_TOKEN;
   const haInstalls = await safe(() => get("https://analytics.home-assistant.io/custom_integrations.json"));
 
   const out = { collected_at: new Date().toISOString().replace(/\.\d+Z$/, "+00:00"), repos: {} };
-  for (const [name, r] of Object.entries(registry.repos ?? {})) {
-    const gh = await safe(() => github(org.github, name, token));
-    if (gh === null) continue;
-    const entry = { github: gh };
-    if (r.npm) entry.npm = await safe(() => summed(npm, channelNames(r, "npm")));
-    if (r.pypi) entry.pypi = await safe(() => summed(pypi, channelNames(r, "pypi")));
-    if (r.ghcr) entry.ghcr = await safe(() => ghcr(org.github, r.ghcr));
-    if (r.ha_domain && !haInstalls.error) entry.ha_installs = haTotal(haInstalls, r);
-    if (r.goatcounter) {
-      entry.goatcounter = gcToken ? await safe(() => goatcounter(r.goatcounter, gcToken, today)) : { error: "no GOATCOUNTER_TOKEN" };
+  // The channels a product or community project publishes to, onto its snapshot entry.
+  const addChannels = async (entry, ch, owner) => {
+    if (ch.npm.length) entry.npm = await safe(() => summed(npm, ch.npm));
+    if (ch.pypi.length) entry.pypi = await safe(() => summed(pypi, ch.pypi));
+    if (ch.ghcr.length) entry.ghcr = await safe(() => summed((image) => ghcr(owner, image), ch.ghcr));
+    if (ch.haDomains.length && !haInstalls.error) entry.ha_installs = haTotal(haInstalls, ch.haDomains);
+  };
+  for (const product of cfg.products) {
+    let home = null;
+    for (const name of product.repos) {
+      const gh = await safe(() => github(org.github, name, token));
+      if (gh === null) continue;
+      out.repos[name] = { github: gh };
+      home ??= out.repos[name];
     }
-    out.repos[name] = entry;
+    if (!home) continue;
+    const ch = channels(product);
+    await addChannels(home, ch, org.github);
+    if (ch.goatcounter) {
+      home.goatcounter = gcToken ? await safe(() => goatcounter(ch.goatcounter, gcToken, today)) : { error: "no GOATCOUNTER_TOKEN" };
+    }
   }
 
-  const community = communityProjects(registry);
+  const community = communityProjects(cfg);
   if (community.length) out.community = {};
-  for (const [id, e] of community) {
+  for (const e of community) {
     const gh = await safe(() => communityGithub(e.repo, token));
     if (gh === null) continue;
     const entry = { github: gh };
-    if (e.npm) entry.npm = await safe(() => summed(npm, channelNames(e, "npm")));
-    if (e.pypi) entry.pypi = await safe(() => summed(pypi, channelNames(e, "pypi")));
-    if (e.ghcr) entry.ghcr = await safe(() => ghcr(e.repo.split("/")[0], e.ghcr));
-    if (e.ha_domain && !haInstalls.error) entry.ha_installs = haTotal(haInstalls, e);
-    out.community[id] = entry;
+    await addChannels(entry, channels(e), e.repo.split("/")[0]);
+    out.community[e.id] = entry;
   }
 
   const dest = path.join(cfg.dataDir, `${today}.json`);

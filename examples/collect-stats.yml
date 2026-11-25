@@ -1,4 +1,4 @@
-# Copy to .github/workflows/collect-stats.yml in the repo that holds your repos.toml.
+# Copy to .github/workflows/collect-stats.yml in the repo that holds your hq.toml and products.toml.
 # Snapshots once a day and commits them; rebuilds the public aggregate (stats.json) from them.
 # To publish the pages too, add publish-stats.yml next to it.
 #
@@ -6,7 +6,7 @@
 #   STATS_TOKEN        fine-grained token for your repos (an org's, or your own account's): "Metadata: read" and
 #                      "Administration: read" (GitHub's traffic API needs the latter). Without traffic access, repo
 #                      views and clones are recorded as errors and everything else still works.
-#   GOATCOUNTER_TOKEN  optional: a GoatCounter API key with "Read statistics", for repos with `goatcounter`.
+#   GOATCOUNTER_TOKEN  optional: a GoatCounter API key with "Read statistics", for products with a `website` artefact.
 #
 # Runs on a schedule and by hand only, never on pull requests: the token can read traffic for every repo.
 name: Collect stats
@@ -40,9 +40,9 @@ jobs:
           GOATCOUNTER_TOKEN: ${{ secrets.GOATCOUNTER_TOKEN }}
         # Pin the version and update it deliberately (Dependabot doesn't see npx). If you also use the pages
         # (site/package.json), run `npx --no-install hq-stats` from site/ instead, so Dependabot updates one version.
-        run: npx --yes @rhizomatics/hq-stats@0.2.1 collect
+        run: npx --yes @rhizomatics/hq-stats@0.3.0 collect
       - name: Aggregate
-        run: npx --yes @rhizomatics/hq-stats@0.2.1 build
+        run: npx --yes @rhizomatics/hq-stats@0.3.0 build
       - name: Commit
         env:
           PUSH_TOKEN: ${{ github.token }}

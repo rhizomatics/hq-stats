@@ -22,7 +22,8 @@ See it in context at the [Rhizomatics HQ](https://hq.rhizomatics.org.uk/usage/),
 
 ## How it works
 
-1. You list your repos in a `repos.toml`, with the channels each one publishes to.
+1. You list your products in `products.toml`, each with its repos and the artefacts it publishes (a PyPI
+   package, a container image, a website...), and your org in `hq.toml`.
 2. A scheduled GitHub Actions workflow runs `hq-stats collect` once a day and commits a snapshot
    (`data/stats/YYYY-MM-DD.json`) to your repo.
 3. `hq-stats build` turns the snapshots into one public aggregate, `stats.json`.
@@ -34,9 +35,12 @@ visitor details). If you want your figures private, keep the repo holding them p
 
 ## Set up
 
-### repos.toml
+### Configuration
+
+Two files, plus an optional third, in the same directory (the repo's root, usually):
 
 ```toml
+# hq.toml: the org, and optionally stats settings and product lines
 [org]
 github = "my-org" # GitHub org, or your own user name, that owns the repos
 name = "My Org" # display name
@@ -45,45 +49,80 @@ name = "My Org" # display name
 data_dir = "data/stats" # snapshots (default)
 out = "data/stats.json" # the aggregate `build` writes (default: next to data_dir)
 
-[families] # optional: headings, in display order
-library = { label = "Libraries" }
-meta = { label = "Organisation" } # `meta`: your own sites; shown under page views only
+[lines.libraries] # optional: product lines, the headings products are listed under, in display order
+name = "Libraries"
 
-[repos.my-library]
-family = "library"
-pypi = "my-library" # PyPI package
-npm = "@my-org/my-lib" # npm package
-ghcr = "my-image" # container image under ghcr.io/<org>/
-hacs_zip = "my_integration.zip" # the release asset HACS downloads
-ha_domain = "my_integration" # Home Assistant integration domain, for install counts
-goatcounter = "my-library-docs" # GoatCounter site code for the project's website
-formerly = { hacs_zip = "old_name.zip" } # names it had before a rename, still counted (see below)
-
-[repos.www]
-family = "meta"
-goatcounter = "my-org"
-
-[community.my-library-card] # optional: someone else's project built on one of yours
-repo = "someone/my-library-card" # owner/name on GitHub
-author = "someone" # GitHub login (default: the repo's owner)
-extends = "my-library" # which of your repos it builds on
-hacs_zip = "my-library-card.js" # the same channel fields as a repo: npm, pypi, ghcr, hacs_zip, ha_domain
+[lines.org]
+name = "Organisation"
+kind = "org" # your own sites: shown under page views only, never counted as products
 ```
 
-Other optional fields per repo: `archived = true` (left off the pages), `category = ["experimental"]` (not
-counted as a product site) or `["internal"]` (left out), `description` (used until the first snapshot has one).
+```toml
+# products.toml: one table per product, keyed by its slug
+[my-library]
+line = "libraries"
+significance = "major" # optional
+artefacts.pypi = "my-library" # PyPI package
+artefacts.npm = "@my-org/my-lib" # npm package
+artefacts.ghcr = "my-image" # container image under ghcr.io/<org>/
+artefacts.homeassistant_marketplace_integration = { asset = "my_integration.zip", domain = "my_integration" }
+artefacts.website = { goatcounter = "my-library-docs" } # GoatCounter site code for its website
 
-A product that's been renamed keeps its history with `formerly`, on a repo or a community project. Each field takes
-one name or a list:
+[homepage]
+line = "org"
+repos = [".github"] # the repos it's built in; default: the slug
+artefacts.website = { goatcounter = "my-org" }
+```
 
-- `name`: the repo's key before the rename. Snapshots from before then are read under the new key.
-- `hacs_zip`: the release asset's old name. Older releases keep it, so both names are counted.
-- `npm`, `pypi`: the old package. Its downloads are added to the new one's.
-- `ha_domain`: the old integration domain. Its installs are added to the new one's.
+```toml
+# community.toml (optional): projects other people build on yours, one table each
+[my-library-card]
+repo = "someone/my-library-card" # owner/name on GitHub
+author = "someone" # GitHub login (default: the repo's owner)
+extends = "my-library" # which of your products it builds on
+artefacts.homeassistant_marketplace_frontend = { asset = "my-library-card.js" }
+```
+
+**Products** are what users install or visit. The slug is the product's name in the pages (`/usage/<slug>/`)
+and defaults to its repo's name; a product built in several repos lists them in `repos`, and its GitHub figures
+are summed. Each repo belongs to one product. Other fields: `description` (used until the first snapshot has one),
+`lifecycle` (`active`, the default; `experimental`, not counted as a product site; `archived`, left off the
+pages), `public = false` (left out), `platform` (what it runs on, e.g. `homeassistant`; a line can set a default
+and an artefact can override it).
+
+**Artefacts** are how a product is delivered, keyed by name. The name is also the distribution unless the artefact
+says `distribution =`, so a product with two of a kind names them (`firmware`, `daemon`). A string is the
+package name. hq-stats counts these distributions and ignores any others:
+
+| Distribution                            | Fields                                 | Counted                                          |
+| --------------------------------------- | -------------------------------------- | ------------------------------------------------ |
+| `pypi`, `npm`                           | `package`                              | downloads                                        |
+| `ghcr`                                  | `package`: the image under ghcr.io/org | pulls                                            |
+| `homeassistant_marketplace_integration` | `asset`, `domain`                      | HACS downloads of the release asset; HA installs |
+| `homeassistant_marketplace_frontend`    | `asset` (a card's `.js`)               | HACS downloads of the release asset              |
+| `website`                               | `goatcounter`: the site code           | page views                                       |
+
+A product that's been renamed keeps its history with `formerly`. Each field takes one name or a list:
+
+- `formerly = { name = "old-repo" }` on the product: the repo's name before the rename. Snapshots from before
+  then are read under the new one.
+- `formerly = { asset = "old_name.zip" }` on an artefact: the release asset's old name. Older releases keep it, so
+  both are counted. Likewise `package` (the old package's downloads are added) and `domain` (its installs are).
 
 Community projects are collected from public sources only (stars, releases, downloads; no traffic, which only
 their authors can see), stored under `community` in the snapshots and the aggregate, and shown on a Community page.
-Entries with `kind = "blog"`, or without a `repo`, are ignored, so the table can list other things too.
+Entries with `kind = "blog"`, or without a `repo`, are ignored, so the file can list other things too.
+
+Anything else in the files is left alone, so they can hold your own settings too.
+
+### From repos.toml
+
+Before 0.3.0 the configuration was one `repos.toml`. It's still read, with a notice, until at least 1.0 and not
+before 2027-06-01. `hq-stats migrate` writes the new files from it, next to it (or `--out <dir>`): families become
+lines (`meta` a line with `kind = "org"`), `upstream` becomes `platform`, `category` becomes `significance`,
+`lifecycle` and `public`, and the channel fields become artefacts. Comments aren't carried over. Check the files,
+then delete `repos.toml`: `hq.toml` is read first once it exists. Snapshots and page URLs don't change, except a
+repo whose name isn't a valid slug (`.github` becomes `github`; rename it as you like with `repos`).
 
 ### Tokens
 
@@ -95,7 +134,7 @@ Entries with `kind = "blog"`, or without a `repo`, are ignored, so the table can
 ### Daily workflow
 
 Copy [examples/collect-stats.yml](examples/collect-stats.yml) to `.github/workflows/` in the repo with your
-`repos.toml`, and add the secrets it names (as `STATS_TOKEN` and `GOATCOUNTER_TOKEN`). It runs on a schedule and
+`hq.toml`, and add the secrets it names (as `STATS_TOKEN` and `GOATCOUNTER_TOKEN`). It runs on a schedule and
 by hand, never on pull requests. Run it once by hand to check: it commits `data/stats/<today>.json` and
 `data/stats.json`.
 
@@ -112,7 +151,7 @@ import starlight from "@astrojs/starlight";
 import hqStats from "@rhizomatics/hq-stats/astro";
 import { usageSidebar } from "@rhizomatics/hq-stats/sidebar";
 
-const options = { config: "../repos.toml" }; // also: stats (path to stats.json), base (default 'usage')
+const options = { config: ".." }; // the directory with hq.toml; also: stats (path to stats.json), base (default 'usage')
 
 export default defineConfig({
   integrations: [starlight({ title: "My Org", sidebar: [{ label: "Usage", items: usageSidebar(options) }] }), hqStats(options)],
@@ -120,11 +159,11 @@ export default defineConfig({
 ```
 
 Run `hq-stats build` before `astro build`. The pages are mounted at `/usage/` (Downloads), `/usage/page-views/`,
-`/usage/<repo>/` and, when `repos.toml` lists community projects, `/usage/community/`. They need `chart.js`
+`/usage/<product>/` and, when there are community projects, `/usage/community/`. They need `chart.js`
 installed alongside.
 
 For a site with nothing else, copy [examples/standalone](examples/standalone) to `site/` next to your
-`repos.toml`, set `site` (and `base`, for a project site such as `https://<owner>.github.io/<repo>/`) in its
+`hq.toml`, set `site` (and `base`, for a project site such as `https://<owner>.github.io/<repo>/`) in its
 `astro.config.mjs`, and run `npm install` there. To publish it on GitHub Pages, copy
 [examples/publish-stats.yml](examples/publish-stats.yml) to `.github/workflows/` and set Pages' source to
 "GitHub Actions" in the repo's settings.
@@ -141,14 +180,17 @@ versioned with the package; a breaking change to either is a major version.
 ## Commands
 
 ```text
-hq-stats collect   snapshot every public repo in repos.toml (run daily)
+hq-stats collect   snapshot every public repo of every product (run daily)
 hq-stats build     write stats.json from the snapshots
+hq-stats migrate   write hq.toml, products.toml and community.toml from a repos.toml
 
-  --config <path>   repos.toml (default: $REPOS_TOML, ./repos.toml, ../repos.toml)
+  --config <path>   the directory with hq.toml, or a repos.toml
+                    (default: $HQ_CONFIG, $REPOS_TOML, then . and ..; hq.toml before repos.toml)
   --data <dir>      snapshot directory
   --legacy <file>   history from the retired hacs-downloads site, if you have it
-  --out <file>      where build writes stats.json
+  --out <path>      where build writes stats.json; where migrate writes the new files
   --offline         build from snapshots only, without live npm, PyPI and Home Assistant calls
+  --force           migrate over existing files
 ```
 
 ## What the numbers mean

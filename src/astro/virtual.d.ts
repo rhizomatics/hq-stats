@@ -5,7 +5,7 @@ declare module "virtual:hq-stats" {
   export const config: {
     base: string;
     org: { name: string; github: string };
-    families: [string, string][];
-    metaLabel: string;
+    lines: [string, string][];
+    orgLines: [string, string][];
   };
 }

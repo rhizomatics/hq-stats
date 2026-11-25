@@ -5,7 +5,7 @@ import Chart from '../components/Chart.astro';
 import Kpi from '../components/Kpi.astro';
 import { CHANNELS, ORG, combinedDownloads, data, downloadsSpecs, fmt, usageHref, viewsViews, type CommunityProject } from '../usage';
 
-// Projects other people have built on the org's products (`[community.<id>]` in repos.toml). Their figures are
+// Projects other people have built on the org's products (`community.toml`). Their figures are
 // shown here only, never added to the org's own totals.
 const projects = (data.community ?? []) as CommunityProject[];
 const components = new Set(data.components.map((c) => c.id));

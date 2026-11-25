@@ -7,7 +7,8 @@ import {
   CHANNELS,
   data,
   downloadsSpecs,
-  familyLabel,
+  lineLabel,
+  lineOf,
   fmt,
   haVersionSpec,
   hacsVersionSpec,
@@ -43,7 +44,7 @@ const totalNote: Record<string, string> = { hacs: 'all time', npm: 'last 18 mont
 ---
 <StarlightPage frontmatter={{ title: c.id, description: c.description, tableOfContents: false }}>
   <p>
-    {c.description} <a href={c.url}>GitHub</a> · {c.family && <>{familyLabel(c.family)} · </>} numbers to {data.snapshotDate}.
+    {c.description} <a href={c.url}>GitHub</a> · {lineOf(c) && <>{lineLabel(lineOf(c)!)} · </>} numbers to {data.snapshotDate}.
   </p>
 
   <div class="kpis">
