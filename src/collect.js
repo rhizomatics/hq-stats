@@ -20,6 +20,7 @@ import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { channels } from "./config.js";
+import { healthSources, productHealth } from "./health.js";
 import { get, HttpError, sleep } from "./http.js";
 
 export function githubToken() {
@@ -171,6 +172,7 @@ export async function collect(cfg, { today = new Date().toISOString().slice(0, 1
   const token = githubToken();
   const gcToken = process.env.GOATCOUNTER_TOKEN;
   const haInstalls = await safe(() => get("https://analytics.home-assistant.io/custom_integrations.json"));
+  const health = await healthSources(cfg.products);
 
   const out = { collected_at: new Date().toISOString().replace(/\.\d+Z$/, "+00:00"), repos: {} };
   // The channels a product or community project publishes to, onto its snapshot entry.
@@ -182,13 +184,18 @@ export async function collect(cfg, { today = new Date().toISOString().slice(0, 1
   };
   for (const product of cfg.products) {
     let home = null;
+    let homeName = null;
     for (const name of product.repos) {
       const gh = await safe(() => github(org.github, name, token));
       if (gh === null) continue;
       out.repos[name] = { github: gh };
       home ??= out.repos[name];
+      homeName ??= name;
     }
     if (!home) continue;
+    // How the platform rates it (Home Assistant's quality scale, the SignalK plugin registry): src/health.js.
+    const rated = await productHealth(org.github, homeName, product, health);
+    if (rated) home.health = rated;
     const ch = channels(product);
     await addChannels(home, ch, org.github);
     if (ch.goatcounter) {

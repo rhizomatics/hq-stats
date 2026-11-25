@@ -37,6 +37,30 @@ export interface Component {
   haInstalls: Daily;
   haVersions: Record<string, number> | null;
   hacsVersions: { version: string; downloads: number; last7: number | null }[];
+  health?: Health | null; // from 0.4.0
+}
+
+// How a product's platform rates it (src/health.js). A source that failed is { error }.
+export interface Health {
+  homeassistant?: {
+    domain?: string;
+    declared?: string | null; // manifest.json's quality_scale
+    assessed?: string | null; // what quality_scale.yaml adds up to
+    next?: { tier: string; todo: string[] } | null;
+    assessment_url?: string | null;
+    error?: string;
+  };
+  signalk?: {
+    package?: string;
+    version?: string | null;
+    score?: number | null; // out of 100
+    badges?: string[];
+    test_status?: string | null;
+    plugin_ci?: string | null;
+    last_tested?: string | null;
+    url?: string;
+    error?: string;
+  };
 }
 
 export interface Website {

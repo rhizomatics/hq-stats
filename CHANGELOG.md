@@ -2,6 +2,19 @@
 title: What's New
 ---
 
+# 0.4.0
+
+## ✨ Enhancements
+
+- Platform ratings, collected daily with the usage figures, as `health` on each product's snapshot entry and on
+  its component in `stats.json`:
+  - Home Assistant: for each integration artefact with a `domain`, the Integration Quality Scale level its
+    `manifest.json` declares, the level its `quality_scale.yaml` adds up to (the highest tier whose rules, per
+    hassfest's list, are all done or exempt) and the rules left for the next tier.
+  - SignalK: for each npm artefact the SignalK plugin registry scores, its score out of 100, badges, test status
+    and plugin-ci status.
+- Neither uses the GitHub API: the files come from raw.githubusercontent.com and the registry's published index.
+
 # 0.3.1
 
 ## ✨ Enhancements

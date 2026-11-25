@@ -291,6 +291,11 @@ function topPages(snapshots, repo) {
   return latest ? latest.repos[repo].goatcounter.top_pages_30d.map(({ path: p, title, count }) => ({ path: p, title, count })) : [];
 }
 
+// The platform ratings (`health`) from the latest snapshot that has them, or null.
+function latestHealth(snapshots, name) {
+  return [...snapshots].reverse().find((s) => s.repos[name]?.health)?.repos[name].health ?? null;
+}
+
 // Description and archive state come from the latest snapshot that has them (collectors before 0.1.0 didn't
 // record them), else the config's own `description`.
 function repoMeta(snapshots, name, product) {
@@ -532,6 +537,8 @@ export async function aggregate(cfg, { log = console.log, warn = console.warn, l
       haInstalls,
       haVersions,
       hacsVersions: ch.hacs.length ? hacsVersions(snapshots, name, ch.hacs) : [],
+      // From 0.4.0: how its platform rates it, from the latest snapshot that has a rating (src/health.js).
+      health: latestHealth(snapshots, name),
     });
   }
 
