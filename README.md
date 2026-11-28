@@ -7,9 +7,11 @@
 # hq-stats
 
 Usage stats for open source projects, from every channel they publish to, with public pages or raw JSON.
-No AI, no cookies, no accounts beyond the tokens you already have. Designed as part of [HQ](https://hq.rhizomatics.org.uk/usage/), a central management repo for developing multiple open source projects, although usable independently.
+No AI, no cookies, no accounts beyond the tokens you already have. Support for common tools and registries such as GitHub, PyPi, NPMJS and GoatCounter, and specific support for **Home Assistant** and **SignalK** developers.
 
-- **Downloads**: PyPI, npm, GitHub Container Registry, HACS (Home Assistant's community store) release downloads
+Designed as part of [HQ](https://hq.rhizomatics.org.uk/usage/), a central management repo for developing multiple open source projects, although usable independently.
+
+- **Downloads**: PyPI, npm, GitHub Container Registry, Home Assistant Marketplace (previously known as HACS),release downloads
 - **Installs**: Home Assistant's public analytics for custom integrations
 - **GitHub**: stars, repo page views and clones (GitHub keeps 14 days; hq-stats snapshots them daily so they're kept)
 - **Websites**: page views from [GoatCounter](https://www.goatcounter.com/), which needs no cookie banner
