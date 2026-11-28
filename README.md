@@ -6,7 +6,7 @@
 
 # hq-stats
 
-![Logo](docs/brand/logo.svg) Usage stats for open source projects, from every channel they publish to, with public pages or raw JSON.
+Usage stats for open source projects, from every channel they publish to, with public pages or raw JSON.
 No AI, no cookies, no accounts beyond the tokens you already have. Designed as part of [HQ](https://hq.rhizomatics.org.uk/usage/), a central management repo for developing multiple open source projects, although usable independently.
 
 - **Downloads**: PyPI, npm, GitHub Container Registry, HACS (Home Assistant's community store) release downloads
